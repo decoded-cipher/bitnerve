@@ -1,10 +1,4 @@
 
-import { getCandleData } from "../api";
-import { CandlesParams } from "../types";
-import { formatToHumanReadableData } from "../utils";
-
-
-
 /* 
   @params:
     data - Array of candle data
@@ -13,7 +7,7 @@ import { formatToHumanReadableData } from "../utils";
     1. For each candle, calculate the mid price as (open + close) / 2.
     2. Return an array of mid prices.
 */
-export const calcMidPrice = async (data: any[]) => {
+export const calcMidPrice = (data: any[]): number[] => {
   return data.map((candle: any) => Number(((Number(candle.o) + Number(candle.c)) / 2).toFixed(2)));
 };
 
@@ -48,20 +42,52 @@ export const calculateSMA = (data: number[], period: number): number[] => {
     2. Use the formula: EMA_today = (Price_today * k) + (EMA_yesterday * (1 - k))
       where k = 2 / (period + 1)
 */
-export const calculateEMA = async (data: number[], period: number): Promise<number[]> => {
+export const calculateEMA = (data: number[], period: number): number[] => {
   const ema: number[] = [];
   const k = 2 / (period + 1);
 
-  // Start with SMA for the first EMA value
-  const initialSMA = data.slice(0, period).reduce((acc, val) => acc + val, 0) / period;
-  ema.push(initialSMA);
+  // First EMA value is the SMA of the first 'period' values
+  const sma = data.slice(0, period).reduce((acc, val) => acc + val, 0) / period;
+  ema.push(sma);
 
+  // Calculate the rest of the EMA values
   for (let i = period; i < data.length; i++) {
-    const emaToday = ((data[i] * k) + (ema[ema.length - 1] * (1 - k))).toFixed(3);
-    ema.push(Number(emaToday));
+    const emaToday = (data[i] * k) + (ema[ema.length - 1] * (1 - k));
+    ema.push(emaToday);
   }
 
   return ema;
+};
+
+
+/*  
+  @params:
+    data - Array of prices
+  @description: Calculate MACD (Moving Average Convergence Divergence)
+  @steps:
+    1. Calculate EMA12 and EMA26
+    2. EMA12 will have more points than EMA26 (since it needs fewer periods to start)
+    3. Slice EMA12 to match EMA26 length
+    4. MACD line = EMA12 - EMA26
+  @returns: Array of MACD values
+*/
+export const calculateMACD = (data: number[]): number[] => {
+  const ema26 = calculateEMA(data, 26);
+  let ema12 = calculateEMA(data, 12);
+
+//   console.log('EMA12:', ema12);
+//   console.log('Total EMA12 values fetched:', ema12.length);
+  
+//   console.log('EMA26:', ema26);
+//   console.log('Total EMA26 values fetched:', ema26.length);
+  
+  // EMA12 will be longer than EMA26, so slice it to match EMA26 length
+  ema12 = ema12.slice(-ema26.length);
+  
+  // Calculate MACD line (EMA12 - EMA26)
+  const macd = ema12.map((_, index) => (ema12[index] ?? 0) - (ema26[index] ?? 0));
+  
+  return macd;
 };
 
 
