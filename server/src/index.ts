@@ -1,19 +1,32 @@
 
-import { getCandles } from './api.js';
+import { calcMidPrice, calculateSMA, calculateEMA } from './helpers/indicators.js';
+import { getCandleData } from './api.js';
+import { CandlesParams } from './types.js';
 import { formatToHumanReadableData } from './utils.js';
 
-(async () => {
-  const params = {
-    start_time: new Date(Date.now() - 60 * 60 * 1000).getTime().toString(), // 1 hour ago
-    end_time: new Date().getTime().toString(),
-    symbol: 'SOL/INR',
-    interval: '5',
-    exchange: 'coinswitchx',
-  };
 
+(async () => {
   try {
-    const candlesData = await getCandles(params);
+
+    const params = {
+      start_time: Date.now() - (1000 * 60 * 60 * 12), // 12 hours ago
+      end_time: Date.now(),
+      symbol: 'SOL/INR',
+      interval: '5'
+    } as CandlesParams;
+
+    const candlesData = await getCandleData(params);
     console.table(formatToHumanReadableData(candlesData.data));
+    console.log('Total Candles fetched:', candlesData.data.length);
+
+    const midPrices = await calcMidPrice(candlesData.data.splice(-50)); // Calculate Mid Prices for last 50 candles
+    console.log('Mid Prices:', midPrices);
+    console.log('Total Mid Prices fetched:', midPrices.length);
+
+    const ema20 = await calculateEMA(midPrices, 20); // Calculate 20-period EMA on Mid Prices
+    console.log('EMA 20:', ema20);
+    console.log('Total EMA 20 values fetched:', ema20.length);
+
   } catch (error) {
     console.error('Error fetching candles data:', error);
   }

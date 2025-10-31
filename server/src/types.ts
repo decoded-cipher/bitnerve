@@ -10,5 +10,5 @@ export interface CandlesParams {
   end_time: string | number;
   symbol: string;
   interval: string | number;
-  exchange: string;
+  exchange?: string;
 }

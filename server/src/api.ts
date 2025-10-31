@@ -77,7 +77,7 @@ async function useAuthRequest(
 
 
 // Fetch candles data from CoinSwitch API
-export async function getCandles(params: CandlesParams) {
-  return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params });
+export async function getCandleData(params: CandlesParams) {
+  return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params, exchange: 'coinswitchx' });
 }
 
