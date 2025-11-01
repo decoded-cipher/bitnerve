@@ -12,3 +12,15 @@ export interface CandlesParams {
   interval: string | number;
   exchange?: string;
 }
+
+// Parameters for fetching futures positions
+export interface FuturesPositionsParams extends Record<string, string | number | boolean> {
+  exchange: string;
+  symbol: string;
+}
+
+// Parameters for listing positions (DMS API v5)
+export interface PositionListParams extends Record<string, string | number | boolean | undefined> {
+  symbol?: string;
+  category: string;
+}
