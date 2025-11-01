@@ -1,6 +1,6 @@
 
 import { calcMidPrice, calculateSMA, calculateEMA, calculateMACD } from './helpers/indicators.js';
-import { getCandleData } from './api.js';
+import { getCandleData, pingApi } from './api.js';
 import { CandlesParams } from './types.js';
 import { formatToHumanReadableData } from './utils.js';
 
@@ -8,11 +8,17 @@ import { formatToHumanReadableData } from './utils.js';
 (async () => {
   try {
 
+    // Test API connectivity
+    const pingResponse = await pingApi();
+    console.log('Ping response:', pingResponse);
+
+
+    
     const params = {
-      start_time: Date.now() - (1000 * 60 * 60 * 24), // 24 hours ago
+      start_time: Date.now() - (1000 * 60 * 60 * 24 * 10), // 10 days ago
       end_time: Date.now(),
       symbol: 'SOL/INR',
-      interval: '5'
+      interval: '240'
     } as CandlesParams;
 
     const candlesData = await getCandleData(params);

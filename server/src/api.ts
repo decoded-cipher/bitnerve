@@ -76,6 +76,12 @@ async function useAuthRequest(
 }
 
 
+// Ping API to test connectivity
+export async function pingApi() {
+  return useAuthRequest('/trade/api/v2/ping', 'GET');
+}
+
+
 // Fetch candles data from CoinSwitch API
 export async function getCandleData(params: CandlesParams) {
   return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params, exchange: 'coinswitchx' });
