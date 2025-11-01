@@ -4,7 +4,7 @@ import { sign, etc } from '@noble/ed25519';
 import { sha512 } from '@noble/hashes/sha2';
 import { concatBytes } from '@noble/hashes/utils';
 
-import type { ServerTimeResponse, CandlesParams, FuturesPositionsParams, PositionListParams, OrderBookParams, OrderParams, LeverageParams } from './types.js';
+// import type { ServerTimeResponse, CandlesParams, FuturesPositionsParams, PositionListParams, OrderBookParams, OrderParams, LeverageParams, ClosedOrdersParams } from './types.js';
 
 const BASE_URL = process.env.COINSWITCH_BASE_URL;
 const DMS_URL = process.env.COINSWITCH_DMS_URL;
@@ -19,7 +19,7 @@ etc.sha512Sync = (...m: Uint8Array[]) => sha512(concatBytes(...m));
 // Get server time from CoinSwitch API
 async function getServerTime(): Promise<number> {
   try {
-    const { data } = await axios.get<ServerTimeResponse>(`${BASE_URL}/trade/api/v2/time`);
+    const { data } = await axios.get(`${BASE_URL}/trade/api/v2/time`);
     return data.serverTime ?? Date.now();
   } catch {
     return Date.now();
@@ -85,13 +85,13 @@ export async function pingApi() {
 
 
 // Fetch candle data from CoinSwitch API
-export async function getCandleData(params: CandlesParams) {
+export async function getCandleData(params: any) {
   return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params, exchange: 'coinswitchx' });
 }
 
 
 // Fetch klines data from CoinSwitch API
-export async function getKlinesData(params: CandlesParams) {
+export async function getKlinesData(params: any) {
   const response = await useAuthRequest('/trade/api/v2/futures/klines', 'GET', { ...params, exchange: 'EXCHANGE_2' });
   return response.data;
 }
@@ -135,7 +135,7 @@ export async function getUserPortfolio() {
 
 
 // Fetch a specific order by order ID from CoinSwitch API
-export async function getOrder(params: OrderParams) {
+export async function getOrder(params: any) {
   return useAuthRequest('/trade/api/v2/futures/order', 'GET', params);
 }
 
@@ -144,4 +144,10 @@ export async function getOrder(params: OrderParams) {
 // export async function getLeverage(params: LeverageParams) {
 //   return useAuthRequest('/trade/api/v2/futures/leverage', 'GET', params);
 // }
+
+
+// Fetch closed orders from CoinSwitch API (POST request)
+export async function getClosedOrders(params: any) {
+  return useAuthRequest('/trade/api/v2/futures/orders/closed', 'POST', params);
+}
 

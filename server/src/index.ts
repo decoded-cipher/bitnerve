@@ -1,4 +1,4 @@
-import { pingApi, getOrder, getWalletBalance, getUserPortfolio } from "./api";
+import { pingApi, getOrder, getClosedOrders, getWalletBalance, getUserPortfolio } from "./api";
 import { getIndicators } from "./helpers/services";
 
 
@@ -38,8 +38,17 @@ import { getIndicators } from "./helpers/services";
 
 
     // Get wallet balance
-    const walletBalance = await getWalletBalance();
-    console.log('Wallet Balance:', JSON.stringify(walletBalance, null, 2));
+    // const walletBalance = await getWalletBalance();
+    // console.log('Wallet Balance:', JSON.stringify(walletBalance, null, 2));
+
+
+
+    // Get closed orders (example from Python code)
+    // const closedOrders = await getClosedOrders({
+    //   exchange: "EXCHANGE_2",
+    //   symbol: "ETHUSDT"
+    // });
+    // console.log('Closed Orders:', JSON.stringify(closedOrders, null, 2));
 
 
 
