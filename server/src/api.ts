@@ -4,7 +4,7 @@ import { sign, etc } from '@noble/ed25519';
 import { sha512 } from '@noble/hashes/sha2';
 import { concatBytes } from '@noble/hashes/utils';
 
-import type { ServerTimeResponse, CandlesParams, FuturesPositionsParams, PositionListParams } from './types.js';
+import type { ServerTimeResponse, CandlesParams, FuturesPositionsParams, PositionListParams, OrderBookParams, OrderParams, LeverageParams } from './types.js';
 
 const BASE_URL = process.env.COINSWITCH_BASE_URL;
 const DMS_URL = process.env.COINSWITCH_DMS_URL;
@@ -85,9 +85,9 @@ export async function pingApi() {
 
 
 // Fetch candle data from CoinSwitch API
-// export async function getCandleData(params: CandlesParams) {
-//   return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params, exchange: 'coinswitchx' });
-// }
+export async function getCandleData(params: CandlesParams) {
+  return useAuthRequest('/trade/api/v2/candles', 'GET', { ...params, exchange: 'coinswitchx' });
+}
 
 
 // Fetch klines data from CoinSwitch API
@@ -98,9 +98,9 @@ export async function getKlinesData(params: CandlesParams) {
 
 
 // Fetch futures positions from CoinSwitch API
-export async function getFuturesPositions(params: FuturesPositionsParams) {
-  return useAuthRequest('/trade/api/v2/futures/positions', 'GET', params);
-}
+// export async function getFuturesPositions(params: FuturesPositionsParams) {
+//   return useAuthRequest('/trade/api/v2/futures/positions', 'GET', params);
+// }
 
 
 // Get wallet balance from CoinSwitch API
@@ -109,15 +109,39 @@ export async function getWalletBalance() {
 }
 
 
-// Cancel all orders for a specific exchange
-export async function cancelAllOrders() {
-  return useAuthRequest('/trade/api/v2/futures/cancel_all', 'POST', { exchange: 'EXCHANGE_2' });
+// Get user portfolio from CoinSwitch API
+export async function getUserPortfolio() {
+  return useAuthRequest('/trade/api/v2/user/portfolio', 'GET');
 }
+
+
+// Cancel all orders for a specific exchange
+// export async function cancelAllOrders() {
+//   return useAuthRequest('/trade/api/v2/futures/cancel_all', 'POST', { exchange: 'EXCHANGE_2' });
+// }
 
 
 // Get all open positions from DMS API (v5)
 // This endpoint returns all open positions, optionally filtered by symbol and category
 // export async function getPositionList(params: PositionListParams) {
 //   return useAuthRequest('/v5/position/list', 'GET', params, true, DMS_URL);
+// }
+
+
+// Fetch order book from CoinSwitch API
+// export async function getOrderBook(params: OrderBookParams) {
+//   return useAuthRequest('/trade/api/v2/futures/order_book', 'GET', params);
+// }
+
+
+// Fetch a specific order by order ID from CoinSwitch API
+export async function getOrder(params: OrderParams) {
+  return useAuthRequest('/trade/api/v2/futures/order', 'GET', params);
+}
+
+
+// Fetch leverage information from CoinSwitch API
+// export async function getLeverage(params: LeverageParams) {
+//   return useAuthRequest('/trade/api/v2/futures/leverage', 'GET', params);
 // }
 

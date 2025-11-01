@@ -24,3 +24,20 @@ export interface PositionListParams extends Record<string, string | number | boo
   symbol?: string;
   category: string;
 }
+
+// Parameters for fetching order book
+export interface OrderBookParams extends Record<string, string | number | boolean> {
+  symbol: string;
+  exchange: string;
+}
+
+// Parameters for fetching a specific order
+export interface OrderParams extends Record<string, string | number | boolean> {
+  order_id: string;
+}
+
+// Parameters for fetching leverage
+export interface LeverageParams extends Record<string, string | number | boolean> {
+  symbol: string;
+  exchange: string;
+}
