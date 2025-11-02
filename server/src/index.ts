@@ -8,19 +8,8 @@ import { SessionState } from './types';
       invocationCount: 1,
     };
 
-    console.log('Composing prompt...');
     const prompt = await getFullPrompt(sessionState);
-
-    console.log('\n=== SYSTEM PROMPT ===');
-    console.log(prompt.system);
-    
-    console.log('\n=== USER PROMPT ===');
-    console.log(prompt.user);
-    
-    console.log('\n=== ASSISTANT PROMPT ===');
-    console.log(prompt.assistant);
-
-    console.log('\nPrompt composition complete.');
+    console.log(prompt);
 
   } catch (error) {
     console.error('Error composing prompt:', error);

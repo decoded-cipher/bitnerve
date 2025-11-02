@@ -1,4 +1,4 @@
-import { createFuturesOrder, getFuturesTicker } from './api';
+import { createFuturesOrder } from './api';
 import { CreateFuturesOrderParams, PerpetualFuturesSymbol, FUTURES_EXCHANGE } from '../../types';
 import { getSymbolConfig } from '../../config/exchange';
 

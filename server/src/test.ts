@@ -97,12 +97,12 @@ import {
 
 
     // Test 6: Get Futures Ticker
-    // try {
-    //   const ticker = await getFuturesTicker({ symbol, exchange: FUTURES_EXCHANGE });
-    //   console.log(JSON.stringify(ticker, null, 2));
-    // } catch (error: any) {
-    //   console.error(error.message);
-    // }
+    try {
+      const ticker = await getFuturesTicker({ symbol, exchange: FUTURES_EXCHANGE });
+      console.log(JSON.stringify(ticker, null, 2));
+    } catch (error: any) {
+      console.error(error.message);
+    }
 
 
     // -------------------------- ERROR - NEEDS FIXING ---------------------------

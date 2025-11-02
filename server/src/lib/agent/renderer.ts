@@ -19,8 +19,8 @@ function getCoinReplacements(marketData: MarketData[]): string {
         [`{{${coinUpper}_CURRENT_EMA20}}`, String(data.currentEma20)],
         [`{{${coinUpper}_CURRENT_MACD}}`, String(data.currentMacd)],
         [`{{${coinUpper}_CURRENT_RSI7}}`, String(data.currentRsi7)],
-        [`{{${coinUpper}_OI_LATEST}}`, String(data.openInterest.latest)],
-        [`{{${coinUpper}_OI_AVG}}`, String(data.openInterest.average)],
+        [`{{${coinUpper}_OI_LATEST}}`, String(data.openInterest)],
+        // [`{{${coinUpper}_OI_AVG}}`, String(data.openInterest.average)],
         [`{{${coinUpper}_FUNDING_RATE}}`, String(data.fundingRate)],
         [`{{${coinUpper}_MID_PRICES}}`, formatArray(data.intraday.midPrices)],
         [`{{${coinUpper}_EMA20}}`, formatArray(data.intraday.ema20)],
@@ -41,6 +41,7 @@ function getCoinReplacements(marketData: MarketData[]): string {
         template = template.replaceAll(placeholder, value);
       });
       
+      // console.log(replacements);
       return template;
     })
     .join('\n\n');
@@ -126,6 +127,7 @@ export async function getUserPrompt(sessionState?: SessionState): Promise<string
     totalReturnPercent: performanceMetrics.totalReturnPercent,
     availableCash: accountMetrics.availableCash,
     accountValue: accountMetrics.accountValue,
+    positions: JSON.stringify(accountMetrics.positions),
     sharpeRatio: performanceMetrics.sharpeRatio,
   });
   
@@ -137,6 +139,8 @@ export async function getUserPrompt(sessionState?: SessionState): Promise<string
 // Combines system, user, and assistant prompts into a full prompt object
 export async function getFullPrompt(sessionState?: SessionState) {
   const userPrompt = await getUserPrompt(sessionState);
+
+  // console.log(userPrompt);
   
   return {
     system: PROMPT.SYSTEM,

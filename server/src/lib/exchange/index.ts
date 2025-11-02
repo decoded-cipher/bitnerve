@@ -52,20 +52,18 @@ async function fetchOIAndFunding(symbol: string) {
     });
     
     // Handle different possible response structures
-    const data = tickerData?.data || tickerData;
+    const data = tickerData?.data?.[FUTURES_EXCHANGE] || tickerData;
+    // console.log("fetchOIAndFunding:", data);
     
     return {
-      openInterest: {
-        latest: data?.open_interest || data?.openInterest || 0,
-        average: data?.avg_open_interest || data?.avgOpenInterest || data?.average_open_interest || 0,
-      },
-      fundingRate: data?.funding_rate || data?.fundingRate || 0,
-      currentPrice: data?.last_price || data?.lastPrice || data?.price || 0,
+      openInterest: parseFloat(data?.open_interest) || 0,
+      fundingRate: data?.funding_rate || 0,
+      currentPrice: parseFloat(data?.last_price) || 0,
     };
   } catch (error) {
     console.error('Error fetching OI and Funding Rate:', error);
     return {
-      openInterest: { latest: 0, average: 0 },
+      openInterest: 0,
       fundingRate: 0,
       currentPrice: 0,
     };
@@ -125,7 +123,8 @@ export async function fetchMarketData(): Promise<MarketData[]> {
       data: await getMarketData(symbol, 5),
     }))
   );
-  
+
+  // console.log("fetchMarketData:", allMarketData);  
   return allMarketData;
 }
 
