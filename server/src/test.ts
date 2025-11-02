@@ -16,10 +16,10 @@ import {
   // getOpenOrders,
   cancelAllFuturesOrders,
   getFuturesInstrumentInfo,
-} from './lib/api';
+} from './lib/exchange/api';
 import { FUTURES_EXCHANGE, PerpetualFuturesSymbol } from './types';
 
-import { getAccountSummary } from './lib/services';
+import { getAccountSummary } from './lib/exchange/_account';
 
 (async () => {
   try {

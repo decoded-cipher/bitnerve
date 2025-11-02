@@ -3,7 +3,7 @@ import axios from 'axios';
 import { sign, etc } from '@noble/ed25519';
 import { sha512 } from '@noble/hashes/sha2';
 import { concatBytes } from '@noble/hashes/utils';
-import type { CandlesParams, BaseApiParams, CreateFuturesOrderParams } from '../types';
+import type { CandlesParams, BaseApiParams, CreateFuturesOrderParams } from '../../types';
 
 const BASE_URL = process.env.COINSWITCH_BASE_URL;
 const DMS_URL = process.env.COINSWITCH_DMS_URL;

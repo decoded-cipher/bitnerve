@@ -1,4 +1,4 @@
-import { getFullPrompt, SessionState } from './lib/renderer';
+import { getFullPrompt, SessionState } from './lib/agent/renderer';
 
 (async () => {  
   try {

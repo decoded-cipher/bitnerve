@@ -1,42 +1,6 @@
-
-import {
-  createFuturesOrder,
-  getFuturesTicker,
-  // getFuturesOrderBook,
-} from './api';
-
-import {
-  CreateFuturesOrderParams,
-  PerpetualFuturesSymbol,
-  FUTURES_EXCHANGE,
-} from '../types';
-import { getSymbolConfig } from '../config/exchange';
-
-
-
-/**
- * Calculate mid price from order book
- * Mid price = (best_bid + best_ask) / 2
- */
-// export async function getMidPrice(symbol: PerpetualFuturesSymbol): Promise<number | null> {
-//   try {
-//     const orderBook = await getFuturesOrderBook({
-//       symbol,
-//       exchange: FUTURES_EXCHANGE,
-//       limit: 1,
-//     });
-    
-//     if (orderBook?.bids?.[0] && orderBook?.asks?.[0]) {
-//       const bestBid = parseFloat(orderBook.bids[0][0] || orderBook.bids[0].price);
-//       const bestAsk = parseFloat(orderBook.asks[0][0] || orderBook.asks[0].price);
-//       return (bestBid + bestAsk) / 2;
-//     }
-//     return null;
-//   } catch (error) {
-//     console.error(`Error getting mid price for ${symbol}:`, error);
-//     return null;
-//   }
-// }
+import { createFuturesOrder, getFuturesTicker } from './api';
+import { CreateFuturesOrderParams, PerpetualFuturesSymbol, FUTURES_EXCHANGE } from '../../types';
+import { getSymbolConfig } from '../../config/exchange';
 
 /**
  * Place a market order (immediate execution)
@@ -111,28 +75,6 @@ export async function placeStopLossOrder(
   };
   
   return createFuturesOrder(params);
-}
-
-/**
- * Get market data for all trading symbols
- */
-export async function getAllMarketData() {
-  const symbols: PerpetualFuturesSymbol[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
-  const results = await Promise.allSettled(
-    symbols.map(symbol => 
-      getFuturesTicker({
-        symbol,
-        exchange: FUTURES_EXCHANGE,
-      }).then(data => ({ symbol, data }))
-    )
-  );
-  
-  return results.map(result => {
-    if (result.status === 'fulfilled') {
-      return result.value;
-    }
-    return { symbol: 'unknown', error: result.reason };
-  });
 }
 
 /**

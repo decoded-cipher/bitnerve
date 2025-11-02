@@ -1,4 +1,6 @@
-
+/**
+ * Basic prompt templates for the trading agent
+ */
 export const PROMPT = {
   SYSTEM: `You are a sophisticated AI trading assistant specialized in cryptocurrency perpetual futures trading. Your goal is to discover alpha and make profitable trading decisions based on technical analysis, market data, and risk management principles.
 
@@ -37,7 +39,9 @@ Based on the above information, what trading action should you take?`,
   ASSISTANT: 'Assistant: ',
 };
 
-// Helper function to format coin data section
+/**
+ * Helper function to format coin data section template
+ */
 export function formatCoinData(coin: string, data: any): string {
   const coinUpper = coin.toUpperCase();
   return `
@@ -75,3 +79,4 @@ MACD indicators: {{${coinUpper}_MACD_4H}}
 RSI indicators (14-Period): {{${coinUpper}_RSI14_4H}}
 `;
 }
+
