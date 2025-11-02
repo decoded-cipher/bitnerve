@@ -46,5 +46,5 @@ export interface LeverageParams extends Record<string, string | number | boolean
 export interface ClosedOrdersParams extends Record<string, string | number | boolean> {
   exchange: string;
   symbol: string;
-  limit?: number;
+  // limit?: number;
 }

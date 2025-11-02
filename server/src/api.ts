@@ -98,9 +98,9 @@ export async function getKlinesData(params: any) {
 
 
 // Fetch futures positions from CoinSwitch API
-// export async function getFuturesPositions(params: FuturesPositionsParams) {
-//   return useAuthRequest('/trade/api/v2/futures/positions', 'GET', params);
-// }
+export async function getFuturesPositions(params: any) {
+  return useAuthRequest('/trade/api/v2/futures/positions', 'GET', params);
+}
 
 
 // Get wallet balance from CoinSwitch API
@@ -129,9 +129,9 @@ export async function getUserPortfolio() {
 
 
 // Fetch order book from CoinSwitch API
-// export async function getOrderBook(params: OrderBookParams) {
-//   return useAuthRequest('/trade/api/v2/futures/order_book', 'GET', params);
-// }
+export async function getOrderBook(params: any) {
+  return useAuthRequest('/trade/api/v2/trades', 'GET', params);
+}
 
 
 // Fetch a specific order by order ID from CoinSwitch API
@@ -141,13 +141,13 @@ export async function getOrder(params: any) {
 
 
 // Fetch leverage information from CoinSwitch API
-// export async function getLeverage(params: LeverageParams) {
+// export async function getLeverage(params: any) {
 //   return useAuthRequest('/trade/api/v2/futures/leverage', 'GET', params);
 // }
 
 
 // Fetch closed orders from CoinSwitch API (POST request)
-export async function getClosedOrders(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/orders/closed', 'POST', params);
-}
+// export async function getClosedOrders(params: any) {
+//   return useAuthRequest('/trade/api/v2/futures/orders/closed', 'POST', params);
+// }
 
