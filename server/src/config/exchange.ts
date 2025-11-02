@@ -1,4 +1,4 @@
-import { PerpetualFuturesSymbol, FUTURES_EXCHANGE } from '../types.js';
+import { PerpetualFuturesSymbol, FUTURES_EXCHANGE } from '../types';
 
 /**
  * Trading configuration for perpetual futures

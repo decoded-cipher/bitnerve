@@ -16,8 +16,8 @@ import {
   // getOpenOrders,
   cancelAllFuturesOrders,
   getFuturesInstrumentInfo,
-} from './api.js';
-import { FUTURES_EXCHANGE, PerpetualFuturesSymbol } from './types.js';
+} from './lib/exchange';
+import { FUTURES_EXCHANGE, PerpetualFuturesSymbol } from './types';
 
 (async () => {
   try {

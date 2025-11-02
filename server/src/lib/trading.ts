@@ -3,14 +3,14 @@ import {
   createFuturesOrder,
   getFuturesTicker,
   // getFuturesOrderBook,
-} from '../api.js';
+} from './exchange';
 
 import {
   CreateFuturesOrderParams,
   PerpetualFuturesSymbol,
   FUTURES_EXCHANGE,
-} from '../types.js';
-import { getSymbolConfig } from '../config/trading.js';
+} from '../types';
+import { getSymbolConfig } from '../config/exchange';
 
 
 

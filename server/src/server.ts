@@ -1,5 +1,5 @@
 
-import { getIndicators } from './helpers/services';
+import { getIndicators } from './lib/services';
 
 (async () => {  
   try {

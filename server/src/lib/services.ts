@@ -1,8 +1,8 @@
 
-import { getKlinesData, getFuturesPositions, getUserPortfolio, getWalletBalance, getFuturesTicker } from "../api.js";
-import { FUTURES_EXCHANGE, BaseApiParams, PerpetualFuturesSymbol, CandlesParams } from "../types.js";
-import { calcMidPrice, calculateEMA, calculateMACD, calculateRSI, calculateATR, calculateVolumeData } from "./indicators.js";
-import { formatToHumanReadableData } from "./utils.js";
+import { getKlinesData, getFuturesPositions, getUserPortfolio, getWalletBalance, getFuturesTicker } from "./exchange";
+import { FUTURES_EXCHANGE, BaseApiParams, PerpetualFuturesSymbol, CandlesParams } from "../types";
+import { calcMidPrice, calculateEMA, calculateMACD, calculateRSI, calculateATR, calculateVolumeData } from "./indicators";
+import { formatToHumanReadableData } from "./utils";
 
 
 
@@ -97,12 +97,12 @@ export async function getOpenInterestAndFundingRate(symbol: string) {
  * Get comprehensive market data for a symbol (combines indicators + OI + Funding)
  * @params:
  *   symbol - Trading symbol (e.g., 'SOLUSDT')
- *   duration - Duration in minutes for intraday data (e.g., 3 for 3-minute intervals)
+ *   duration - Duration in minutes for intraday data (e.g., 5 for 5-minute intervals)
  * @returns: Object with intraday indicators, 4h indicators, OI, and funding rate
  */
-export async function getComprehensiveMarketData(symbol: string, duration: number = 3) {
+export async function getComprehensiveMarketData(symbol: string, duration: number = 5) {
   const [intradayIndicators, longerTermIndicators, oiData] = await Promise.all([
-    getIndicators(duration, symbol),           // Intraday data (3-minute intervals)
+    getIndicators(duration, symbol),           // Intraday data (5-minute intervals)
     getIndicators(240, symbol),                 // 4-hour intervals (240 minutes)
     getOpenInterestAndFundingRate(symbol),
   ]);
