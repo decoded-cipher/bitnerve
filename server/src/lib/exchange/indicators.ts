@@ -22,7 +22,7 @@ export const calcMidPrice = (data: any[]): number[] => {
     1. Take the sum of closing prices over a specific period.
     2. Divide the sum by the number of periods.
 */
-export const calculateSMA = (data: number[], period: number): number[] => {
+export const calcSMA = (data: number[], period: number): number[] => {
   const sma: number[] = [];
   for (let i = 0; i <= data.length - period; i++) {
     const slice = data.slice(i, i + period);
@@ -44,7 +44,7 @@ export const calculateSMA = (data: number[], period: number): number[] => {
     2. Use the formula: EMA_today = (Price_today * k) + (EMA_yesterday * (1 - k))
       where k = 2 / (period + 1)
 */
-export const calculateEMA = (data: number[], period: number): number[] => {
+export const calcEMA = (data: number[], period: number): number[] => {
   const ema: number[] = [];
   const k = 2 / (period + 1);
 
@@ -74,9 +74,9 @@ export const calculateEMA = (data: number[], period: number): number[] => {
     4. MACD line = EMA12 - EMA26
   @returns: Array of MACD values
 */
-export const calculateMACD = (data: number[]): number[] => {
-  const ema26 = calculateEMA(data, 26);
-  let ema12 = calculateEMA(data, 12);
+export const calcMACD = (data: number[]): number[] => {
+  const ema26 = calcEMA(data, 26);
+  let ema12 = calcEMA(data, 12);
 
   // console.log('EMA12:', ema12);
   // console.log('Total EMA12 values fetched:', ema12.length);
@@ -105,7 +105,7 @@ export const calculateMACD = (data: number[]): number[] => {
     2. Calculate RS = Average Gain / Average Loss
     3. Calculate RSI = 100 - (100 / (1 + RS))
 */
-export const calculateRSI = (data: number[], period: number): number[] => {
+export const calcRSI = (data: number[], period: number): number[] => {
   const rsi: number[] = [];
   let gains = 0;
   let losses = 0;
@@ -163,7 +163,7 @@ export const calculateRSI = (data: number[], period: number): number[] => {
  *   1. Calculate True Range for each candle: max(high-low, abs(high-prev_close), abs(low-prev_close))
  *   2. Calculate SMA of True Range values
  */
-export const calculateATR = (data: any[], period: number): number[] => {
+export const calcATR = (data: any[], period: number): number[] => {
   const trueRanges: number[] = [];
   
   // Start from index 1 to have previous close
@@ -185,7 +185,7 @@ export const calculateATR = (data: any[], period: number): number[] => {
     trueRanges.push(tr);
   }
   
-  return calculateSMA(trueRanges, period);
+  return calcSMA(trueRanges, period);
 };
 
 
@@ -197,7 +197,7 @@ export const calculateATR = (data: any[], period: number): number[] => {
  * @description: Extract current volume and average volume
  * @returns: Object with currentVolume and averageVolume
  */
-export const calculateVolumeData = (data: any[]): { currentVolume: number; averageVolume: number } => {
+export const calcVolume = (data: any[]): { currentVolume: number; averageVolume: number } => {
   const volumes = data.map(candle => Number(candle.volume) || 0);
   
   const currentVolume = volumes.length > 0 ? volumes[volumes.length - 1] : 0;

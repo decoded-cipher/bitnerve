@@ -1,40 +1,22 @@
-import { getFuturesPositions, getUserPortfolio, getWalletBalance, getClosedOrders } from './api';
-import { FUTURES_EXCHANGE, BaseApiParams } from '../../types';
+
 import { FUTURES_EXCHANGE_ID } from '../../config/exchange';
+import { getFuturesPositions, getUserPortfolio, getWalletBalance, getClosedOrders } from './api';
+import { FUTURES_EXCHANGE, BaseApiParams, AccountData, AccountMetrics, PerformanceMetrics } from '../../types';
 
-/**
- * Get account summary (balance, portfolio, positions)
- */
-export async function getAccountSummary() {
-  const params: BaseApiParams = {
-    exchange: FUTURES_EXCHANGE,
-  };
 
-  const [balance, portfolio, positions] = await Promise.all([
+
+// Fetches account data including balance, portfolio, positions, and closed orders
+export async function fetchAccountData(): Promise<AccountData> {
+  const params: BaseApiParams = { exchange: FUTURES_EXCHANGE };
+  
+  const [balance, portfolio, positions, closedOrdersData] = await Promise.all([
     getWalletBalance(),
     getUserPortfolio(),
     getFuturesPositions(params),
-  ]);
-
-  return { balance, portfolio, positions };
-}
-
-/**
- * Raw account data from API
- */
-export interface AccountData {
-  accountSummary: Awaited<ReturnType<typeof getAccountSummary>>;
-  closedOrders: any[];
-}
-
-/**
- * Fetch all account-related data in parallel
- */
-export async function fetchAccountData(): Promise<AccountData> {
-  const [accountSummary, closedOrdersData] = await Promise.all([
-    getAccountSummary(),
     getClosedOrders({ exchange: FUTURES_EXCHANGE_ID, count: 500 }).catch(() => ({ data: [] })),
   ]);
+
+  const accountSummary = { balance, portfolio, positions };
 
   return {
     accountSummary,
@@ -42,20 +24,10 @@ export async function fetchAccountData(): Promise<AccountData> {
   };
 }
 
-/**
- * Extracted account metrics from account summary
- */
-export interface AccountMetrics {
-  availableCash: number;
-  cryptoValue: number;
-  accountValue: number;
-  positions: any[];
-}
 
-/**
- * Extract account metrics from account summary response
- */
-export function extractAccountMetrics(accountData: AccountData): AccountMetrics {
+
+// Computes key account metrics from the fetched account data
+export function getAccountMetrics(accountData: AccountData): AccountMetrics {
   const accountSummary = accountData.accountSummary;
   
   // Available cash in INR
@@ -82,121 +54,65 @@ export function extractAccountMetrics(accountData: AccountData): AccountMetrics 
   };
 }
 
-/**
- * Calculated performance metrics
- */
-export interface PerformanceMetrics {
-  initialBalance: number;
-  totalReturnPercent: number;
-  sharpeRatio: number;
-}
 
-/**
- * Calculate initial balance from closed orders and current balance
- */
-export function calculateInitialBalance(
-  accountValue: number,
-  closedOrders: any[],
-  storedInitialBalance?: number
-): number {
-  // Use stored value if available
-  if (storedInitialBalance && storedInitialBalance > 0) {
-    return storedInitialBalance;
-  }
 
-  const ordersArray = Array.isArray(closedOrders) ? closedOrders : [];
-  
-  if (!ordersArray || ordersArray.length === 0) {
-    // No historical data, use current balance as initial
-    return accountValue;
-  }
-  
-  // Sum up all realized PnL from closed orders
-  const totalPnL = ordersArray.reduce((sum, order) => {
-    const pnl = parseFloat(order.realized_pnl || order.pnl || 0);
-    return sum + pnl;
-  }, 0);
-  
-  // Initial balance = current balance - total PnL
-  const calculatedInitialBalance = accountValue - totalPnL;
-  
-  // Return calculated balance or fallback to current balance if calculation is invalid
-  return calculatedInitialBalance > 0 ? calculatedInitialBalance : accountValue;
-}
-
-/**
- * Calculate total return percentage
- */
-export function calculateTotalReturnPercent(accountValue: number, initialBalance: number): number {
-  if (!initialBalance || initialBalance === 0) return 0;
-  return ((accountValue - initialBalance) / initialBalance) * 100;
-}
-
-/**
- * Calculate Sharpe Ratio from historical trades
- * Sharpe Ratio = (Average Return - Risk Free Rate) / Standard Deviation of Returns
- * For simplicity, assuming risk-free rate is 0
- */
-export function calculateSharpeRatio(closedOrders: any[], initialBalance: number): number {
-  if (!closedOrders || closedOrders.length === 0 || !initialBalance || initialBalance === 0) {
-    return 0;
-  }
-  
-  try {
-    // Calculate returns from closed orders
-    const returns: number[] = [];
-    let cumulativePnL = 0;
-    
-    for (const order of closedOrders) {
-      const pnL = order.realized_pnl || order.pnl || 0;
-      cumulativePnL += pnL;
-      
-      // Calculate return percentage
-      const orderReturn = cumulativePnL / initialBalance;
-      returns.push(orderReturn);
-    }
-    
-    if (returns.length === 0) return 0;
-    
-    // Calculate average return
-    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-    
-    // Calculate standard deviation
-    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-    const stdDev = Math.sqrt(variance);
-    
-    // Avoid division by zero
-    if (stdDev === 0) return 0;
-    
-    // Sharpe Ratio = Average Return / Standard Deviation
-    return avgReturn / stdDev;
-    
-  } catch (error) {
-    console.error('Error calculating Sharpe Ratio:', error);
-    return 0;
-  }
-}
-
-/**
- * Calculate all performance metrics
- */
-export function calculatePerformanceMetrics(
+// Calculates performance metrics such as initial balance, total return percentage, and Sharpe Ratio
+export function calcPerformanceMetrics(
   accountMetrics: AccountMetrics,
   accountData: AccountData,
   storedInitialBalance?: number
 ): PerformanceMetrics {
-  const initialBalance = calculateInitialBalance(
-    accountMetrics.accountValue,
-    accountData.closedOrders,
-    storedInitialBalance
-  );
   
-  const totalReturnPercent = calculateTotalReturnPercent(
-    accountMetrics.accountValue,
-    initialBalance
-  );
+  // Calculate initial balance from closed orders and current balance
+  let initialBalance: number;
+  if (storedInitialBalance && storedInitialBalance > 0) {
+    initialBalance = storedInitialBalance;
+  } else {
+    const ordersArray = Array.isArray(accountData.closedOrders) ? accountData.closedOrders : [];
+    if (!ordersArray || ordersArray.length === 0) {
+      initialBalance = accountMetrics.accountValue;
+    } else {
+      const totalPnL = ordersArray.reduce((sum, order) => {
+        const pnl = parseFloat(order.realized_pnl || order.pnl || 0);
+        return sum + pnl;
+      }, 0);
+      const calculatedInitialBalance = accountMetrics.accountValue - totalPnL;
+      initialBalance = calculatedInitialBalance > 0 ? calculatedInitialBalance : accountMetrics.accountValue;
+    }
+  }
   
-  const sharpeRatio = calculateSharpeRatio(accountData.closedOrders, initialBalance);
+  // Calculate total return percentage
+  const totalReturnPercent = initialBalance && initialBalance !== 0
+    ? ((accountMetrics.accountValue - initialBalance) / initialBalance) * 100
+    : 0;
+  
+  // Calculate Sharpe Ratio
+  let sharpeRatio = 0;
+  if (accountData.closedOrders && accountData.closedOrders.length > 0 && initialBalance && initialBalance !== 0) {
+    try {
+      const returns: number[] = [];
+      let cumulativePnL = 0;
+      
+      for (const order of accountData.closedOrders) {
+        const pnL = order.realized_pnl || order.pnl || 0;
+        cumulativePnL += pnL;
+        const orderReturn = cumulativePnL / initialBalance;
+        returns.push(orderReturn);
+      }
+      
+      if (returns.length > 0) {
+        const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+        const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+        const stdDev = Math.sqrt(variance);
+        
+        if (stdDev !== 0) {
+          sharpeRatio = avgReturn / stdDev;
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating Sharpe Ratio:', error);
+    }
+  }
   
   return {
     initialBalance,
@@ -204,4 +120,3 @@ export function calculatePerformanceMetrics(
     sharpeRatio,
   };
 }
-

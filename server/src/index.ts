@@ -1,8 +1,8 @@
-import { getFullPrompt, SessionState } from './lib/agent/renderer';
+import { getFullPrompt } from './lib/agent/renderer';
+import { SessionState } from './types';
 
 (async () => {  
   try {
-    // Optional: Create a session state for tracking
     const sessionState: SessionState = {
       startTime: Date.now(),
       invocationCount: 1,
@@ -20,7 +20,7 @@ import { getFullPrompt, SessionState } from './lib/agent/renderer';
     console.log('\n=== ASSISTANT PROMPT ===');
     console.log(prompt.assistant);
 
-    console.log('\n✅ Prompt composition complete!');
+    console.log('\nPrompt composition complete.');
 
   } catch (error) {
     console.error('Error composing prompt:', error);

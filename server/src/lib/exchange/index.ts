@@ -1,12 +1,13 @@
+
 import { getKlinesData, getFuturesTicker } from './api';
-import { FUTURES_EXCHANGE, CandlesParams } from '../../types';
-import { calcMidPrice, calculateEMA, calculateMACD, calculateRSI, calculateATR, calculateVolumeData } from './indicators';
+import { FUTURES_EXCHANGE, CandlesParams, MarketData } from '../../types';
+import { calcMidPrice, calcEMA, calcMACD, calcRSI, calcATR, calcVolume } from './indicators';
 import { TRADING_SYMBOLS } from '../../config/exchange';
 
-/**
- * Get technical indicators for a symbol
- */
-export async function getIndicators(duration: number, symbol: string) {
+
+
+// Fetch technical indicators for a given duration and symbol
+async function fetchIndicators(duration: number, symbol: string) {
   const params = {
     start_time: Date.now() - (1000 * 60 * 60 * (duration === 5 ? 5 : 24 * 10)), // Last 5 hours or 10 days
     end_time: Date.now(),
@@ -18,14 +19,14 @@ export async function getIndicators(duration: number, symbol: string) {
   const recentCandles = candlesData.slice(-50);
   
   const midPrices = calcMidPrice(recentCandles);
-  const ema20 = calculateEMA(midPrices, 20);
-  const ema50 = calculateEMA(midPrices, 50);
-  const macd = calculateMACD(midPrices);
-  const rsi7 = calculateRSI(midPrices, 7);
-  const rsi14 = calculateRSI(midPrices, 14);
-  const atr3 = calculateATR(recentCandles, 3);
-  const atr14 = calculateATR(recentCandles, 14);
-  const volumeData = calculateVolumeData(recentCandles);
+  const ema20 = calcEMA(midPrices, 20);
+  const ema50 = calcEMA(midPrices, 50);
+  const macd = calcMACD(midPrices);
+  const rsi7 = calcRSI(midPrices, 7);
+  const rsi14 = calcRSI(midPrices, 14);
+  const atr3 = calcATR(recentCandles, 3);
+  const atr14 = calcATR(recentCandles, 14);
+  const volumeData = calcVolume(recentCandles);
 
   return {
     midPrices,
@@ -40,10 +41,10 @@ export async function getIndicators(duration: number, symbol: string) {
   };
 }
 
-/**
- * Get Open Interest and Funding Rate from futures ticker
- */
-export async function getOpenInterestAndFundingRate(symbol: string) {
+
+
+// Fetch Open Interest and Funding Rate for a symbol
+async function fetchOIAndFunding(symbol: string) {
   try {
     const tickerData = await getFuturesTicker({
       symbol,
@@ -71,14 +72,14 @@ export async function getOpenInterestAndFundingRate(symbol: string) {
   }
 }
 
-/**
- * Get comprehensive market data for a symbol (combines indicators + OI + Funding)
- */
-export async function getComprehensiveMarketData(symbol: string, duration: number = 5) {
+
+
+// Orchestrator to get all market data for a symbol
+async function getMarketData(symbol: string, duration: number = 5) {
   const [intradayIndicators, longerTermIndicators, oiData] = await Promise.all([
-    getIndicators(duration, symbol),           // Intraday data (5-minute intervals)
-    getIndicators(240, symbol),                // 4-hour intervals (240 minutes)
-    getOpenInterestAndFundingRate(symbol),
+    fetchIndicators(duration, symbol),           // Intraday data (5-minute intervals)
+    fetchIndicators(240, symbol),                // 4-hour intervals (240 minutes)
+    fetchOIAndFunding(symbol),
   ]);
 
   return {
@@ -114,22 +115,14 @@ export async function getComprehensiveMarketData(symbol: string, duration: numbe
   };
 }
 
-/**
- * Market data for a single symbol
- */
-export interface MarketData {
-  symbol: string;
-  data: Awaited<ReturnType<typeof getComprehensiveMarketData>>;
-}
 
-/**
- * Fetch all market data for all trading symbols in parallel
- */
-export async function fetchAllMarketData(): Promise<MarketData[]> {
+
+// Fetch market data for all trading symbols
+export async function fetchMarketData(): Promise<MarketData[]> {
   const allMarketData = await Promise.all(
     TRADING_SYMBOLS.map(async (symbol) => ({
       symbol,
-      data: await getComprehensiveMarketData(symbol, 5),
+      data: await getMarketData(symbol, 5),
     }))
   );
   

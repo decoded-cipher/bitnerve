@@ -19,7 +19,9 @@ import {
 } from './lib/exchange/api';
 import { FUTURES_EXCHANGE, PerpetualFuturesSymbol } from './types';
 
-import { getAccountSummary } from './lib/exchange/_account';
+import { 
+  // getAccountSummary
+} from './lib/exchange/_account';
 
 (async () => {
   try {
@@ -178,12 +180,12 @@ import { getAccountSummary } from './lib/exchange/_account';
     //   console.error(error.message);
     // }
 
-    try {
-      const response = await getAccountSummary();
-      console.log(JSON.stringify(response, null, 2));
-    } catch (error: any) {
-      console.error('✗ Account Summary Error:', error.message);
-    }
+    // try {
+    //   const response = await getAccountSummary();
+    //   console.log(JSON.stringify(response, null, 2));
+    // } catch (error: any) {
+    //   console.error('✗ Account Summary Error:', error.message);
+    // }
 
 
   } catch (error: any) {

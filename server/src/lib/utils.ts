@@ -1,5 +1,4 @@
 
-
 // Convert number to US currency format
 export function formatToUSD(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -11,6 +10,13 @@ export function formatToUSD(amount: number): string {
 }
 
 
+// Helper to format array data for display
+export function formatArray(arr: number[], maxDisplay: number = 10): string {
+  const displayArr = arr.length > maxDisplay ? arr.slice(-maxDisplay) : arr;
+  return `[${displayArr.join(', ')}]`;
+}
+
+
 // Convert timestamp to readable date string in IST timezone
 export function formatTimestampToIST(epochTime: number): string {
   const date = new Date(epochTime);
@@ -18,8 +24,24 @@ export function formatTimestampToIST(epochTime: number): string {
 }
 
 
+// Calculate duration between timestamps in specified unit
+export function calcDuration(startTime: number, endTime: number = Date.now(), unit: 'ms' | 's' | 'm' | 'h' | 'd' = 's'): number {
+  if (!startTime) return 0;
+  const diffMs = endTime - startTime;
+  
+  switch (unit) {
+    case 'ms': return diffMs;
+    case 's': return Math.floor(diffMs / 1000);
+    case 'm': return Math.floor(diffMs / (1000 * 60));
+    case 'h': return Math.floor(diffMs / (1000 * 60 * 60));
+    case 'd': return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    default: return diffMs;
+  }
+}
+
+
 // Format data to human-readable data
-export function formatToHumanReadableData(data: any[]): any[] {
+export function formatData(data: any[]): any[] {
   return data.map(item => ({
     ...item,
     o: item.o ? formatToUSD(parseFloat(item.o)) : item.o,

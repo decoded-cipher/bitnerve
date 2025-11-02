@@ -39,7 +39,7 @@ async function generateSignature(
 
 
 // Wrapper for authenticated requests
-async function useAuthRequest(
+async function authRequest(
   endpoint: string,
   method: string = 'GET',
   params: Record<string, string | number | boolean> = {},
@@ -79,88 +79,88 @@ async function useAuthRequest(
 
 // Ping API to test connectivity
 export async function pingApi() {
-  return useAuthRequest('/trade/api/v2/ping', 'GET');
+  return authRequest('/trade/api/v2/ping', 'GET');
 }
 
 
 // Fetch klines data from CoinSwitch API
 export async function getKlinesData(params: CandlesParams) {
-  const response = await useAuthRequest('/trade/api/v2/futures/klines', 'GET', { ...params, exchange: 'EXCHANGE_2' });
+  const response = await authRequest('/trade/api/v2/futures/klines', 'GET', { ...params, exchange: 'EXCHANGE_2' });
   return response.data;
 }
 
 // Fetch futures positions from CoinSwitch API
 export async function getFuturesPositions(params: BaseApiParams) {
-  return useAuthRequest('/trade/api/v2/futures/positions', 'GET', params);
+  return authRequest('/trade/api/v2/futures/positions', 'GET', params);
 }
 
 // Get wallet balance from CoinSwitch API
 export async function getWalletBalance() {
-  return useAuthRequest('/trade/api/v2/futures/wallet_balance', 'GET');
+  return authRequest('/trade/api/v2/futures/wallet_balance', 'GET');
 }
 
 // Get user portfolio from CoinSwitch API
 export async function getUserPortfolio() {
-  return useAuthRequest('/trade/api/v2/user/portfolio', 'GET');
+  return authRequest('/trade/api/v2/user/portfolio', 'GET');
 }
 
 // Fetch a specific order by order ID from CoinSwitch API
 export async function getOrder(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/order', 'GET', params);
+  return authRequest('/trade/api/v2/futures/order', 'GET', params);
 }
 
 // Fetch closed orders from CoinSwitch API (POST request)
 export async function getClosedOrders(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/orders/closed', 'POST', params);
+  return authRequest('/trade/api/v2/futures/orders/closed', 'POST', params);
 }
 
 // Create futures order (Place Order)
 export async function createFuturesOrder(params: CreateFuturesOrderParams) {
-  return useAuthRequest('/trade/api/v2/futures/order', 'POST', params);
+  return authRequest('/trade/api/v2/futures/order', 'POST', params);
 }
 
 // Cancel futures order
 export async function cancelFuturesOrder(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/order', 'DELETE', params);
+  return authRequest('/trade/api/v2/futures/order', 'DELETE', params);
 }
 
 // Get futures ticker (includes open interest and funding rate)
 export async function getFuturesTicker(params: BaseApiParams) {
-  return useAuthRequest('/trade/api/v2/futures/ticker', 'GET', params);
+  return authRequest('/trade/api/v2/futures/ticker', 'GET', params);
 }
 
 // // Get futures order book (depth)
 // export async function getFuturesOrderBook(params: any) {
-//   return useAuthRequest('/trade/api/v2/futures/orderbook', 'GET', params);
+//   return authRequest('/trade/api/v2/futures/orderbook', 'GET', params);
 // }
 
 // // Get futures L2 order book (aggregated depth)
 // export async function getFuturesL2OrderBook(params: any) {
-//   return useAuthRequest('/trade/api/v2/futures/l2orderbook', 'GET', params);
+//   return authRequest('/trade/api/v2/futures/l2orderbook', 'GET', params);
 // }
 
 // // Get leverage information
 // export async function getLeverage(params: any) {
-//   return useAuthRequest('/trade/api/v2/futures/leverage', 'GET', params);
+//   return authRequest('/trade/api/v2/futures/leverage', 'GET', params);
 // }
 
 // // Set leverage
 // export async function setLeverage(params: any) {
-//   return useAuthRequest('/trade/api/v2/futures/leverage', 'POST', params);
+//   return authRequest('/trade/api/v2/futures/leverage', 'POST', params);
 // }
 
 // // Get open orders
 // export async function getOpenOrders(params: any) {
-//   return useAuthRequest('/trade/api/v2/futures/orders', 'GET', params);
+//   return authRequest('/trade/api/v2/futures/orders', 'GET', params);
 // }
 
 // Cancel all open orders for a specific exchange
 export async function cancelAllFuturesOrders(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/cancel_all', 'POST', params);
+  return authRequest('/trade/api/v2/futures/cancel_all', 'POST', params);
 }
 
 // Get futures instrument info
 export async function getFuturesInstrumentInfo(params: any) {
-  return useAuthRequest('/trade/api/v2/futures/instrument_info', 'GET', params);
+  return authRequest('/trade/api/v2/futures/instrument_info', 'GET', params);
 }
 
