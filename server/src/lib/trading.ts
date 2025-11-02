@@ -3,7 +3,7 @@ import {
   createFuturesOrder,
   getFuturesTicker,
   // getFuturesOrderBook,
-} from './exchange';
+} from './api';
 
 import {
   CreateFuturesOrderParams,

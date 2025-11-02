@@ -5,7 +5,8 @@ import { PerpetualFuturesSymbol, FUTURES_EXCHANGE } from '../types';
  * Supports: BTCUSDT, ETHUSDT, SOLUSDT
  */
 
-export const TRADING_SYMBOLS: PerpetualFuturesSymbol[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+// export const TRADING_SYMBOLS: PerpetualFuturesSymbol[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+export const TRADING_SYMBOLS: PerpetualFuturesSymbol[] = ['ETHUSDT'];
 
 export const FUTURES_EXCHANGE_ID = FUTURES_EXCHANGE;
 

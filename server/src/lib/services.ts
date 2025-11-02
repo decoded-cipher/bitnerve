@@ -1,5 +1,5 @@
 
-import { getKlinesData, getFuturesPositions, getUserPortfolio, getWalletBalance, getFuturesTicker } from "./exchange";
+import { getKlinesData, getFuturesPositions, getUserPortfolio, getWalletBalance, getFuturesTicker } from "./api";
 import { FUTURES_EXCHANGE, BaseApiParams, PerpetualFuturesSymbol, CandlesParams } from "../types";
 import { calcMidPrice, calculateEMA, calculateMACD, calculateRSI, calculateATR, calculateVolumeData } from "./indicators";
 import { formatToHumanReadableData } from "./utils";
