@@ -8,8 +8,9 @@
     2. Return an array of mid prices.
 */
 export const calcMidPrice = (data: any[]): number[] => {
-  return data.map((candle: any) => Number(((Number(candle.o) + Number(candle.c)) / 2).toFixed(2)));
+  return data.map((candle: any) => (Number(candle.o) + Number(candle.c)) / 2);
 };
+
 
 
 /*
@@ -30,6 +31,7 @@ export const calculateSMA = (data: number[], period: number): number[] => {
   }
   return sma;
 };
+
 
 
 /*
@@ -60,6 +62,7 @@ export const calculateEMA = (data: number[], period: number): number[] => {
 };
 
 
+
 /*  
   @params:
     data - Array of prices
@@ -75,11 +78,11 @@ export const calculateMACD = (data: number[]): number[] => {
   const ema26 = calculateEMA(data, 26);
   let ema12 = calculateEMA(data, 12);
 
-//   console.log('EMA12:', ema12);
-//   console.log('Total EMA12 values fetched:', ema12.length);
+  // console.log('EMA12:', ema12);
+  // console.log('Total EMA12 values fetched:', ema12.length);
   
-//   console.log('EMA26:', ema26);
-//   console.log('Total EMA26 values fetched:', ema26.length);
+  // console.log('EMA26:', ema26);
+  // console.log('Total EMA26 values fetched:', ema26.length);
   
   // EMA12 will be longer than EMA26, so slice it to match EMA26 length
   ema12 = ema12.slice(-ema26.length);
@@ -91,37 +94,116 @@ export const calculateMACD = (data: number[]): number[] => {
 };
 
 
-// export const calculateRSI = (data: number[], period: number): number[] => {
-//   const rsi: number[] = [];
-//   let gains = 0;
-//   let losses = 0;
 
-//   for (let i = 1; i <= period; i++) {
-//     const change = data[i] - data[i - 1];
-//     if (change >= 0) {
-//       gains += change;
-//     } else {
-//       losses -= change;
-//     }
-//   }
+/*
+  @params:
+    data - Array of prices
+    period - Number of periods for RSI
+  @description: Calculate Relative Strength Index (RSI)
+  @steps:
+    1. Calculate average gains and losses over the specified period.
+    2. Calculate RS = Average Gain / Average Loss
+    3. Calculate RSI = 100 - (100 / (1 + RS))
+*/
+export const calculateRSI = (data: number[], period: number): number[] => {
+  const rsi: number[] = [];
+  let gains = 0;
+  let losses = 0;
 
-//   let averageGain = gains / period;
-//   let averageLoss = losses / period;
-//   rsi.push(100 - (100 / (1 + averageGain / averageLoss)));
+  for (let i = 1; i <= period; i++) {
+    const change = data[i] - data[i - 1];
+    if (change >= 0) {
+      gains += change;
+    } else {
+      losses -= change;
+    }
+  }
 
-//   for (let i = period + 1; i < data.length; i++) {
-//     const change = data[i] - data[i - 1];
-//     if (change >= 0) {
-//       averageGain = (averageGain * (period - 1) + change) / period;
-//       averageLoss = (averageLoss * (period - 1)) / period;
-//     } else {
-//       averageGain = (averageGain * (period - 1)) / period;
-//       averageLoss = (averageLoss * (period - 1) - change) / period;
-//     }
-//     rsi.push(100 - (100 / (1 + averageGain / averageLoss)));
-//   }
+  let averageGain = gains / period;
+  let averageLoss = losses / period;
+  
+  // Handle division by zero
+  if (averageLoss === 0) {
+    rsi.push(100);
+  } else {
+    rsi.push(100 - (100 / (1 + averageGain / averageLoss)));
+  }
 
-//   return rsi;
-// };
+  for (let i = period + 1; i < data.length; i++) {
+    const change = data[i] - data[i - 1];
+    if (change >= 0) {
+      averageGain = (averageGain * (period - 1) + change) / period;
+      averageLoss = (averageLoss * (period - 1)) / period;
+    } else {
+      averageGain = (averageGain * (period - 1)) / period;
+      averageLoss = (averageLoss * (period - 1) - change) / period;
+    }
+    
+    // Handle division by zero
+    if (averageLoss === 0) {
+      rsi.push(100);
+    } else {
+      rsi.push(100 - (100 / (1 + averageGain / averageLoss)));
+    }
+  }
+
+  return rsi;
+};
 
 
+
+
+/**
+ * Calculate Average True Range (ATR) from candlestick data
+ * @params:
+ *   data - Array of candlestick objects with o, h, l, c properties
+ *   period - Number of periods for ATR
+ * @description: Calculate ATR using proper True Range formula
+ * @steps:
+ *   1. Calculate True Range for each candle: max(high-low, abs(high-prev_close), abs(low-prev_close))
+ *   2. Calculate SMA of True Range values
+ */
+export const calculateATR = (data: any[], period: number): number[] => {
+  const trueRanges: number[] = [];
+  
+  // Start from index 1 to have previous close
+  for (let i = 1; i < data.length; i++) {
+    const curr = data[i];
+    const prev = data[i - 1];
+    
+    const high = Number(curr.h);
+    const low = Number(curr.l);
+    const prevClose = Number(prev.c);
+    
+    // True Range = max(high-low, abs(high-prev_close), abs(low-prev_close))
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    
+    trueRanges.push(tr);
+  }
+  
+  return calculateSMA(trueRanges, period);
+};
+
+
+
+/**
+ * Calculate volume data from candlestick data
+ * @params:
+ *   data - Array of candlestick objects with volume property
+ * @description: Extract current volume and average volume
+ * @returns: Object with currentVolume and averageVolume
+ */
+export const calculateVolumeData = (data: any[]): { currentVolume: number; averageVolume: number } => {
+  const volumes = data.map(candle => Number(candle.volume) || 0);
+  
+  const currentVolume = volumes.length > 0 ? volumes[volumes.length - 1] : 0;
+  const averageVolume = volumes.length > 0 
+    ? volumes.reduce((sum, vol) => sum + vol, 0) / volumes.length 
+    : 0;
+  
+  return { currentVolume, averageVolume };
+};

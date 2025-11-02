@@ -1,6 +1,8 @@
 
-export interface ServerTimeResponse {
-  serverTime?: number;
+// Base params for most API calls (exchange + symbol pattern)
+export interface BaseApiParams {
+  exchange: string;
+  symbol?: string;
   [key: string]: any;
 }
 
@@ -13,38 +15,23 @@ export interface CandlesParams {
   exchange?: string;
 }
 
-// Parameters for fetching futures positions
-export interface FuturesPositionsParams extends Record<string, string | number | boolean> {
+// Parameters for creating futures order (keep specific for order types)
+export interface CreateFuturesOrderParams {
   exchange: string;
   symbol: string;
+  side: 'BUY' | 'SELL';
+  order_type: 'MARKET' | 'LIMIT' | 'STOP_MARKET' | 'STOP_LIMIT';
+  quantity: number;
+  price?: number;
+  stop_price?: number;
+  time_in_force?: 'GTC' | 'IOC' | 'FOK';
+  reduce_only?: boolean;
+  close_on_trigger?: boolean;
+  [key: string]: any;
 }
 
-// Parameters for listing positions (DMS API v5)
-export interface PositionListParams extends Record<string, string | number | boolean | undefined> {
-  symbol?: string;
-  category: string;
-}
+// Trading symbols for perpetual futures
+export type PerpetualFuturesSymbol = 'BTCUSDT' | 'ETHUSDT' | 'SOLUSDT' | 'BNBUSDT' | 'XRPUSDT' | 'DOGEUSDT';
 
-// Parameters for fetching order book
-export interface OrderBookParams extends Record<string, string | number | boolean> {
-  symbol: string;
-  exchange: string;
-}
-
-// Parameters for fetching a specific order
-export interface OrderParams extends Record<string, string | number | boolean> {
-  order_id: string;
-}
-
-// Parameters for fetching leverage
-export interface LeverageParams extends Record<string, string | number | boolean> {
-  symbol: string;
-  exchange: string;
-}
-
-// Parameters for fetching closed orders
-export interface ClosedOrdersParams extends Record<string, string | number | boolean> {
-  exchange: string;
-  symbol: string;
-  // limit?: number;
-}
+// Exchange identifier for CoinSwitch futures
+export const FUTURES_EXCHANGE = 'EXCHANGE_2';

@@ -1,105 +1,185 @@
-import { getIndicators } from "./helpers/services";
-import { formatTimestampToIST, formatToINRCurrency } from "./helpers/utils";
-import { 
-  pingApi, 
-  getOrder, 
-  getOrderBook, 
-  // getClosedOrders, 
-  getWalletBalance, 
-  getUserPortfolio, 
-  getFuturesPositions, 
-  // getLeverage
-} from "./api";
-
+import {
+  pingApi,
+  getKlinesData,
+  getFuturesPositions,
+  getWalletBalance,
+  getUserPortfolio,
+  getOrder,
+  getClosedOrders,
+  createFuturesOrder,
+  cancelFuturesOrder,
+  getFuturesTicker,
+  // getFuturesOrderBook,
+  // getFuturesL2OrderBook,
+  // getLeverage,
+  // setLeverage,
+  // getOpenOrders,
+  cancelAllFuturesOrders,
+  getFuturesInstrumentInfo,
+} from './api.js';
+import { FUTURES_EXCHANGE, PerpetualFuturesSymbol } from './types.js';
 
 (async () => {
   try {
-
-    // Test API connectivity
-    // const pingResponse = await pingApi();
-    // console.log('Ping response:', pingResponse);
+    const symbol: PerpetualFuturesSymbol = 'ETHUSDT';
 
 
+    // -------------------------- SUCCESS - WORKING ---------------------------
 
 
-    // console.log("Short Term Position Indicators (5 min):");
-    // await getIndicators(5, 'ETHUSDT');
+    // Test 1: Ping API
+    // try {
+    //   const ping = await pingApi();
+    //   console.log(ping);
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- SUCCESS - WORKING ---------------------------
+
+
+    // Test 2: Get Klines Data
+    // try {
+    //   const klines = await getKlinesData({
+    //     symbol,
+    //     interval: 5,
+    //     start_time: Date.now() - (1000 * 60 * 60), // 1 hour ago
+    //     end_time: Date.now(),
+    //   });
+    //   console.table(klines);
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+    // Test 3: Get Futures Positions
+    // try {
+    //   const positions = await getFuturesPositions({ exchange: FUTURES_EXCHANGE });
+    //   console.log('✓ Positions:', JSON.stringify(positions).substring(0, 150));
+    // } catch (error: any) {
+    //   console.log('✗ Positions Error:', error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+    // Test 4: Get Wallet Balance
+    // try {
+    //   const balance = await getWalletBalance();
+    //   console.log(JSON.stringify(balance, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- SUCCESS - WORKING ---------------------------
+
+
+    // Test 5: Get User Portfolio
+    // try {
+    //   const portfolio = await getUserPortfolio();
+    //   console.log(JSON.stringify(portfolio, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- SUCCESS - WORKING ---------------------------
+
+
+    // Test 6: Get Futures Ticker
+    // try {
+    //   const ticker = await getFuturesTicker({ symbol, exchange: FUTURES_EXCHANGE });
+    //   console.log(JSON.stringify(ticker, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+    // Test 7: Get Futures Order Book
+    // try {
+    //   const orderBook = await getFuturesOrderBook({ symbol, exchange: FUTURES_EXCHANGE, limit: 5 });
+    //   console.log(JSON.stringify(orderBook, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+    // Test 8: Get Futures L2 Order Book
+    // try {
+    //   const l2OrderBook = await getFuturesL2OrderBook({ symbol, exchange: FUTURES_EXCHANGE, limit: 5 });
+    //   console.log(JSON.stringify(l2OrderBook, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+
+    // Test 9: Get Leverage
+    // try {
+    //   const leverage = await getLeverage({ symbol, exchange: FUTURES_EXCHANGE });
+    //   console.log(JSON.stringify(leverage, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+
+    // Test 10: Get Open Orders
+    // try {
+    //   const openOrders = await getOpenOrders({ exchange: FUTURES_EXCHANGE });
+    //   console.log('✓ Open Orders:', Array.isArray(openOrders)
+    //     ? `${openOrders.length} orders`
+    //     : JSON.stringify(openOrders).substring(0, 150));
+    // } catch (error: any) {
+    //   console.error(error);
+    // }
+
+
+    // -------------------------- ERROR - NEEDS FIXING ---------------------------
+
+
+    // Test 11: Get Closed Orders
+    // try {
+    //   const closedOrders = await getClosedOrders({ exchange: FUTURES_EXCHANGE, symbol });
+    //   console.log(JSON.stringify(closedOrders, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
+
+
+    // -------------------------- SUCCESS - WORKING ---------------------------
+
     
-    // console.log("\nLong Term Position Indicators (4 hr):");
-    // await getIndicators(240, 'ETHUSDT');
-    
+    // Test 12: Get Futures Instrument Info
+    // try {
+    //   const instrumentInfo = await getFuturesInstrumentInfo({ symbol, exchange: FUTURES_EXCHANGE });
+    //   console.log(JSON.stringify(instrumentInfo, null, 2));
+    // } catch (error: any) {
+    //   console.error(error.message);
+    // }
 
 
-
-    // Get all open linear positions
-    // const allPositions = await getFuturesPositions({
-    //   exchange: "EXCHANGE_2",
-    //   symbol: "SOLUSDT",
-    // });
-    // console.log('Futures Positions:', JSON.stringify(allPositions, null, 2));
-    
-
-
-
-    // Get order book for ETC/INR
-    const orderBook = await getOrderBook({
-      symbol: "ETC/INR",
-      exchange: "coinswitchx",
-      // l2Orderbook: "true"
-    });
-    
-    console.table(orderBook.data.slice(0, 10).map((trade: any) => ({
-      eventTime: formatTimestampToIST(trade.E),
-      price: formatToINRCurrency(parseFloat(trade.p)),
-      quantity: trade.q,
-      exchange: trade.e,
-      symbol: trade.s,
-      mode: trade.m ? 'SHORT' : 'LONG',
-    })));
-
-
-
-
-    // Get wallet balance
-    // const walletBalance = await getWalletBalance();
-    // console.log('Wallet Balance:', JSON.stringify(walletBalance, null, 2));
-
-
-
-
-    // Get closed orders (example from Python code)
-    // const closedOrders = await getClosedOrders({
-    //   exchange: "EXCHANGE_2"
-    // });
-    // console.log('Closed Orders:', JSON.stringify(closedOrders, null, 2));
-
-
-
-
-    // Get user portfolio
-    // const userPortfolio = await getUserPortfolio();
-    // console.log('User Portfolio:', JSON.stringify(userPortfolio, null, 2));
-
-    // Get order details
-    // const orderDetails = await getOrder({ order_id: '019a4148-b491-72c6-92c2-9e8bf297e23b' });
-    // console.log('Order Details:', JSON.stringify(orderDetails, null, 2));
-
-    // Get leverage information
-    // const leverageInfo = await getLeverage({
-    //   symbol: 'ETHUSDT',
-    //   exchange: 'EXCHANGE_2'
-    // });
-    // console.log('Leverage Info:', JSON.stringify(leverageInfo, null, 2));
-
-
-    
-
-    // Cancel all orders
-    // const cancelResult = await cancelAllOrders();
-    // console.log('Cancel All Orders Result:', JSON.stringify(cancelResult, null, 2));
-
-  } catch (error) {
-    console.error('Error in main execution:', error);
+  } catch (error: any) {
+    console.error(error);
   }
+
   process.exit(0);
 })();
