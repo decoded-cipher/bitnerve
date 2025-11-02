@@ -12,9 +12,9 @@
     "build": "bun build src/index.ts --outdir dist --target bun"
   },
   "dependencies": {
-    "@noble/ed25519": "^2.0.0",
-    "@noble/hashes": "^1.4.0",
-    "axios": "^1.7.9",
+    "@noble/ed25519": "^2.3.0",
+    "@noble/hashes": "^1.8.0",
+    "axios": "^1.13.1",
     "express": "^5.1.0"
   },
   "devDependencies": {
