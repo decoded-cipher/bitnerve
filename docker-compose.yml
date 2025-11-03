@@ -21,6 +21,21 @@ services:
     networks:
       - trading-bot-network
 
+  # client:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile
+  #   container_name: ai-trading-bot-client
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${CLIENT_PORT:-3000}:3000"
+  #   environment:
+  #     NODE_ENV: production
+  #     HOST: 0.0.0.0
+  #     PORT: 3000
+  #   networks:
+  #     - trading-bot-network
+
   # server:
   #   build:
   #     context: ./server
