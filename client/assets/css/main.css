@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white dark:bg-arena-darker text-light-text dark:text-white transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-arena-accent text-white px-4 py-2 rounded hover:bg-opacity-90 transition;
+  }
+  
+  .tab-active {
+    @apply bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white;
+  }
+  
+  .tab-inactive {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300;
+  }
+  
+  .card-surface {
+    @apply bg-white dark:bg-arena-dark border border-light-border dark:border-gray-800;
+  }
+  
+  .text-primary {
+    @apply text-light-text dark:text-white;
+  }
+  
+  .text-secondary {
+    @apply text-light-text-secondary dark:text-gray-400;
+  }
+}
+
