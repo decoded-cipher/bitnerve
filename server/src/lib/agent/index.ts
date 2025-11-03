@@ -5,9 +5,9 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 import { getMarketData } from '../exchange';
 import type { SessionState } from '../../types';
-import { getUserPrompt } from './simulation-renderer';
+import { getUserPrompt } from './renderer';
 import { PROMPT } from './prompt';
-import { createPosition, closePosition, getAccountMetrics, updatePositionPnL } from '../exchange/helper';
+import { createPosition, closePosition } from '../exchange/helper';
 import { TRADING_SYMBOLS } from '../../config/exchange';
 
 const openrouter = createOpenRouter({
@@ -26,7 +26,7 @@ export async function invokeAgent(
   finishReason: 'stop' | 'tool_calls' | 'length';
 }> {
 
-  const userPrompt = await getUserPrompt(accountId, sessionState);
+  const userPrompt = await getUserPrompt(sessionState, accountId);
   console.log(userPrompt);
 
   // Generate text with tools

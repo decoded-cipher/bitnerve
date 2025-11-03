@@ -74,3 +74,12 @@ export interface MarketData {
   symbol: string;
   data: any;
 }
+
+
+export interface Metrics {
+  totalReturnPercent: number;
+  availableCash: number;
+  accountValue: number;
+  positions: any;
+  sharpeRatio?: number;
+}

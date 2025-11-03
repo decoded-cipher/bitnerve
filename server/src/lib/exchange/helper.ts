@@ -55,15 +55,6 @@ export async function getOpenPositions(accountId: string) {
     .orderBy(desc(positions.created_at));
 }
 
-// Get all positions (open and closed) for an account
-export async function getAllPositions(accountId: string) {
-  return await db
-    .select()
-    .from(positions)
-    .where(eq(positions.account_id, accountId))
-    .orderBy(desc(positions.created_at));
-}
-
 // Get closed orders for an account
 export async function getClosedOrders(accountId: string) {
   return await db

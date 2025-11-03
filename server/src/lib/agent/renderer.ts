@@ -1,26 +1,26 @@
 
-import { SessionState, MarketData } from '../../types';
+import { SessionState, MarketData, Metrics } from '../../types';
 import { PROMPT, formatCoinData } from './prompt';
 import { formatArray, formatTimestampToIST, calcDuration } from '../utils';
 import { fetchMarketData } from '../exchange';
 import { fetchAccountData, getAccountMetrics, calcPerformanceMetrics } from '../exchange/_account';
+import { getAccountMetrics as getSimulationAccountMetrics } from '../exchange/helper';
 
 
-// Generate placeholder replacements for each coin's market data
-function getCoinReplacements(marketData: MarketData[]): string {
+// Formats data for all coins into a single string
+function formatAllCoins(marketData: MarketData[]): string {
   return marketData
     .map(({ symbol, data }) => {
       const coinName = symbol.replace('USDT', '');
       const coinUpper = coinName.toUpperCase();
-      let template = formatCoinData(coinName, {});
+      const template = formatCoinData(coinName, {});
       
-      const replacements = new Map<string, string>([
+      const replacements = [
         [`{{${coinUpper}_CURRENT_PRICE}}`, String(data.currentPrice)],
         [`{{${coinUpper}_CURRENT_EMA20}}`, String(data.currentEma20)],
         [`{{${coinUpper}_CURRENT_MACD}}`, String(data.currentMacd)],
         [`{{${coinUpper}_CURRENT_RSI7}}`, String(data.currentRsi7)],
         [`{{${coinUpper}_OI_LATEST}}`, String(data.openInterest)],
-        // [`{{${coinUpper}_OI_AVG}}`, String(data.openInterest.average)],
         [`{{${coinUpper}_FUNDING_RATE}}`, String(data.fundingRate)],
         [`{{${coinUpper}_MID_PRICES}}`, formatArray(data.intraday.midPrices)],
         [`{{${coinUpper}_EMA20}}`, formatArray(data.intraday.ema20)],
@@ -35,117 +35,78 @@ function getCoinReplacements(marketData: MarketData[]): string {
         [`{{${coinUpper}_VOLUME_AVG}}`, String(data.longerTerm.volumeData.averageVolume)],
         [`{{${coinUpper}_MACD_4H}}`, formatArray(data.longerTerm.macd)],
         [`{{${coinUpper}_RSI14_4H}}`, formatArray(data.longerTerm.rsi14)],
-      ]);
+      ];
       
-      replacements.forEach((value, placeholder) => {
-        template = template.replaceAll(placeholder, value);
-      });
-      
-      // console.log(replacements);
-      return template;
+      return replacements.reduce(
+        (acc, [placeholder, value]) => acc.replaceAll(placeholder, value),
+        template
+      );
     })
     .join('\n\n');
 }
 
 
-// Create placeholder replacements for account-related data
-function getAccountReplacements(params: {
-  minutesTrading: number;
-  currentTime: string;
-  invocationCount: number;
-  coinDataSections: string;
-  totalReturnPercent: number;
-  availableCash: number;
-  accountValue: number;
-  positions?: string;
-  sharpeRatio?: number;
-}): Map<string, string> {
-  const replacements = new Map<string, string>([
-    ['{{MINUTES_TRADING}}', String(params.minutesTrading)],
-    ['{{CURRENT_TIME}}', params.currentTime],
-    ['{{INVOCATION_COUNT}}', String(params.invocationCount)],
-    ['{{COIN_DATA}}', params.coinDataSections],
-    ['{{TOTAL_RETURN_PERCENT}}', params.totalReturnPercent.toFixed(2)],
-    ['{{AVAILABLE_CASH}}', params.availableCash.toFixed(2)],
-    ['{{ACCOUNT_VALUE}}', params.accountValue.toFixed(2)],
-  ]);
-
-  if (params.positions !== undefined) {
-    replacements.set('{{POSITIONS}}', params.positions);
+// Fetches metrics based on whether it's live or simulation trading
+async function fetchMetrics(accountId?: string, initialBalance?: number): Promise<Metrics> {
+  if (accountId) {
+    const metrics = await getSimulationAccountMetrics(accountId);
+    return {
+      totalReturnPercent: metrics.totalReturnPercent,
+      availableCash: metrics.availableCash,
+      accountValue: metrics.accountValue,
+      positions: metrics.positions,
+      sharpeRatio: metrics.sharpeRatio,
+    };
   }
-
-  if (params.sharpeRatio !== undefined) {
-    replacements.set('{{SHARPE_RATIO}}', params.sharpeRatio.toFixed(3));
-  }
-
-  return replacements;
-}
-
-
-// Replace all placeholders in a template string using the provided replacements map
-function replace(template: string, replacements: Map<string, string>): string {
-  let result = template;
-  replacements.forEach((value, placeholder) => {
-    result = result.replaceAll(placeholder, value);
-  });
-  return result;
-}
-
-
-
-// Orchestrates fetching data and rendering the user prompt
-export async function getUserPrompt(sessionState?: SessionState): Promise<string> {
   
-  // Fetch all data in parallel
-  const [marketData, accountData] = await Promise.all([
-    fetchMarketData(),
-    fetchAccountData(),
-  ]);
-  
-  // Extract and calculate metrics
+  const accountData = await fetchAccountData();
   const accountMetrics = getAccountMetrics(accountData);
-  const performanceMetrics = calcPerformanceMetrics(
-    accountMetrics,
-    accountData,
-    sessionState?.initialBalance
-  );
+  const performanceMetrics = calcPerformanceMetrics(accountMetrics, accountData, initialBalance);
   
-  // Generate coin data sections
-  const coinDataSections = getCoinReplacements(marketData);
-  
-  // Prepare session info
-  const currentTime = formatTimestampToIST(Date.now());
-  const minutesTrading = calcDuration(sessionState?.startTime ?? 0, Date.now(), 'm');
-  const invocationCount = sessionState?.invocationCount || 0;
-  
-  // Create placeholder replacements
-  const replacements = getAccountReplacements({
-    minutesTrading,
-    currentTime,
-    invocationCount,
-    coinDataSections,
+  return {
     totalReturnPercent: performanceMetrics.totalReturnPercent,
     availableCash: accountMetrics.availableCash,
     accountValue: accountMetrics.accountValue,
-    positions: JSON.stringify(accountMetrics.positions),
+    positions: accountMetrics.positions,
     sharpeRatio: performanceMetrics.sharpeRatio,
-  });
-  
-  // Apply all replacements to the prompt template
-  return replace(PROMPT.USER, replacements);
+  };
 }
 
 
-// Combines system, user, and assistant prompts into a full prompt object
-export async function getFullPrompt(sessionState?: SessionState) {
-  const userPrompt = await getUserPrompt(sessionState);
+// Builds the user prompt by replacing placeholders with actual data
+function buildPrompt(metrics: Metrics, coinData: string, sessionState?: SessionState): string {
+  const replacements = new Map<string, string>([
+    ['{{MINUTES_TRADING}}', String(calcDuration(sessionState?.startTime ?? 0, Date.now(), 'm'))],
+    ['{{CURRENT_TIME}}', formatTimestampToIST(Date.now())],
+    ['{{INVOCATION_COUNT}}', String(sessionState?.invocationCount || 0)],
+    ['{{COIN_DATA}}', coinData],
+    ['{{TOTAL_RETURN_PERCENT}}', metrics.totalReturnPercent.toFixed(2)],
+    ['{{AVAILABLE_CASH}}', metrics.availableCash.toFixed(2)],
+    ['{{ACCOUNT_VALUE}}', metrics.accountValue.toFixed(2)],
+    ['{{POSITIONS}}', JSON.stringify(metrics.positions)],
+  ]);
 
-  // console.log(userPrompt);
-  
-  return {
-    system: PROMPT.SYSTEM,
-    user: userPrompt,
-    assistant: PROMPT.ASSISTANT,
-  };
+  if (metrics.sharpeRatio !== undefined) {
+    replacements.set('{{SHARPE_RATIO}}', metrics.sharpeRatio.toFixed(3));
+  }
+
+  return Array.from(replacements.entries()).reduce(
+    (template, [placeholder, value]) => template.replaceAll(placeholder, value),
+    PROMPT.USER
+  );
+}
+
+
+// Orchestrates fetching data and rendering the user prompt
+export async function getUserPrompt(
+  sessionState?: SessionState,
+  accountId?: string
+): Promise<string> {
+  const [marketData, metrics] = await Promise.all([
+    fetchMarketData(),
+    fetchMetrics(accountId, sessionState?.initialBalance),
+  ]);
+
+  return buildPrompt(metrics, formatAllCoins(marketData), sessionState);
 }
 
