@@ -1,18 +1,11 @@
-import { getFullPrompt } from './lib/agent/renderer';
-import { SessionState } from './types';
+import { tradingBot } from './bot';
 
-(async () => {  
+// Main entry point
+(async () => {
   try {
-    const sessionState: SessionState = {
-      startTime: Date.now(),
-      invocationCount: 1,
-    };
-
-    const prompt = await getFullPrompt(sessionState);
-    console.log(prompt);
-
+    await tradingBot.start();
   } catch (error) {
-    console.error('Error composing prompt:', error);
+    console.error('Fatal error:', error);
+    process.exit(1);
   }
-  process.exit(0);
 })();

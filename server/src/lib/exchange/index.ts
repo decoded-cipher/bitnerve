@@ -73,7 +73,7 @@ async function fetchOIAndFunding(symbol: string) {
 
 
 // Orchestrator to get all market data for a symbol
-async function getMarketData(symbol: string, duration: number = 5) {
+export async function getMarketData(symbol: string, duration: number = 5) {
   const [intradayIndicators, longerTermIndicators, oiData] = await Promise.all([
     fetchIndicators(duration, symbol),           // Intraday data (5-minute intervals)
     fetchIndicators(240, symbol),                // 4-hour intervals (240 minutes)
