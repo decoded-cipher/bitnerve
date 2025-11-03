@@ -36,8 +36,6 @@ RUN addgroup -g 1001 -S nodejs && \
     chown -R bunjs:nodejs /app
 USER bunjs
 
-EXPOSE 3000
-
 # Run the application
 CMD ["bun", "run", "dist/index.js"]
 
