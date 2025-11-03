@@ -101,12 +101,22 @@ function buildPrompt(metrics: Metrics, coinData: string, sessionState?: SessionS
 export async function getUserPrompt(
   sessionState?: SessionState,
   accountId?: string
-): Promise<string> {
+): Promise<{
+  prompt: string;
+  marketData: MarketData[];
+  metrics: Metrics;
+}> {
   const [marketData, metrics] = await Promise.all([
     fetchMarketData(),
     fetchMetrics(accountId, sessionState?.initialBalance),
   ]);
 
-  return buildPrompt(metrics, formatAllCoins(marketData), sessionState);
+  const prompt = buildPrompt(metrics, formatAllCoins(marketData), sessionState);
+
+  return {
+    prompt,
+    marketData,
+    metrics,
+  };
 }
 

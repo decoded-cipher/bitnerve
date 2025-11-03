@@ -9,6 +9,7 @@ import { getUserPrompt } from './renderer';
 import { PROMPT } from './prompt';
 import { createPosition, closePosition } from '../exchange/helper';
 import { TRADING_SYMBOLS } from '../../config/exchange';
+import { db, agentInvocations } from '../../config/database';
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -26,8 +27,8 @@ export async function invokeAgent(
   finishReason: 'stop' | 'tool_calls' | 'length';
 }> {
 
-  const userPrompt = await getUserPrompt(sessionState, accountId);
-  console.log(userPrompt);
+  // Fetch prompt and raw data for saving
+  const { prompt: userPrompt, marketData, metrics } = await getUserPrompt(sessionState, accountId);
 
   // Generate text with tools
   const { text, toolCalls, finishReason } = await generateText({
@@ -45,6 +46,8 @@ export async function invokeAgent(
         execute: async ({ symbol, side, quantity }) => {
           const marketData = await getMarketData(symbol);
           const position = await createPosition(accountId, symbol, side, quantity, marketData.currentPrice);
+          
+          console.log(`Opened position: ${side} ${quantity} ${symbol} at $${marketData.currentPrice}`);
           return position;
         },
       }),
@@ -55,8 +58,10 @@ export async function invokeAgent(
           quantity: z.number().optional().describe('The quantity to close in units. If not provided or set to undefined, the entire position will be closed. Use partial closes to take profits while letting winners run.'),
         }),
         execute: async ({ symbol, quantity }) => {
-          const position = await closePosition(accountId, symbol, quantity);
-          return position;
+          const result = await closePosition(accountId, symbol, quantity);
+          
+          console.log(`Closed position: ${symbol} at $${result.order.filled_price}`);
+          return result;
         },
       }),
     }
@@ -74,6 +79,23 @@ export async function invokeAgent(
         });
       }
     }
+  }
+
+  // Save agent invocation data to database
+  try {
+    await db.insert(agentInvocations).values({
+      account_id: accountId,
+      session_state: sessionState as any,
+      market_data: marketData as any,
+      metrics: metrics as any,
+      user_prompt: userPrompt,
+      chain_of_thought: text,
+      agent_response: executedToolCalls.length > 0 ? executedToolCalls : null,
+      finish_reason: finishReason as string,
+    });
+  } catch (error) {
+    console.error('Error saving agent invocation to database:', error);
+    // Don't throw - allow the function to continue even if saving fails
   }
 
   return {

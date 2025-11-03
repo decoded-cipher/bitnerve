@@ -32,6 +32,7 @@ export const positions = pgTable('positions', {
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   account_id: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }).notNull(),
+  agent_invocation_id: uuid('agent_invocation_id').references(() => agentInvocations.id, { onDelete: 'set null' }),
   position_id: uuid('position_id').references(() => positions.id),
   symbol: text('symbol').notNull(),
   side: text('side').notNull(),
@@ -46,6 +47,20 @@ export const orders = pgTable('orders', {
   ...timestamps(),
 });
 
+export const agentInvocations = pgTable('agent_invocations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  account_id: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }).notNull(),
+  session_state: jsonb('session_state').notNull(),
+  market_data: jsonb('market_data').notNull(),
+  metrics: jsonb('metrics').notNull(),
+  user_prompt: text('user_prompt').notNull(),
+  chain_of_thought: text('chain_of_thought').notNull(),
+  agent_response: jsonb('agent_response'),
+  finish_reason: text('finish_reason'),
+  ...timestamps(),
+});
+
 export type Account = typeof accounts.$inferSelect;
 export type Position = typeof positions.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type AgentInvocation = typeof agentInvocations.$inferSelect;
