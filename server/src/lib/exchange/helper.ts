@@ -112,7 +112,8 @@ export async function createPosition(
   symbol: string,
   side: 'BUY' | 'SELL',
   quantity: number,
-  price: number
+  price: number,
+  agentInvocationId?: string
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
@@ -168,6 +169,7 @@ export async function createPosition(
     .insert(orders)
     .values({
       account_id: accountId,
+      agent_invocation_id: agentInvocationId,
       symbol,
       side,
       order_type: 'MARKET',
@@ -189,7 +191,8 @@ export async function createPosition(
 export async function closePosition(
   accountId: string,
   symbol: string,
-  quantity?: number // If not provided, close entire position
+  quantity?: number, // If not provided, close entire position
+  agentInvocationId?: string
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
@@ -270,6 +273,7 @@ export async function closePosition(
     .insert(orders)
     .values({
       account_id: accountId,
+      agent_invocation_id: agentInvocationId,
       symbol,
       side: oppositeSide,
       order_type: 'MARKET',
