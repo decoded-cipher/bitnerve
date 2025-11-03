@@ -1,13 +1,5 @@
 export const useTheme = () => {
-  const isDark = ref(true)
-
-  const toggleTheme = () => {
-    isDark.value = !isDark.value
-    if (process.client) {
-      localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-      updateTheme()
-    }
-  }
+  const isDark = ref(false)
 
   const updateTheme = () => {
     if (process.client) {
@@ -25,17 +17,28 @@ export const useTheme = () => {
       if (savedTheme) {
         isDark.value = savedTheme === 'dark'
       } else {
-        // Check system preference
-        isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+        // Check system preference if no saved theme
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        isDark.value = prefersDark
       }
       updateTheme()
     }
   }
 
+  const toggleTheme = () => {
+    isDark.value = !isDark.value
+    if (process.client) {
+      localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+      updateTheme()
+    }
+  }
+
+  // Initialize theme on mount
   onMounted(() => {
     initTheme()
   })
 
+  // Watch for changes to update DOM
   watch(isDark, () => {
     updateTheme()
   })
@@ -46,3 +49,4 @@ export const useTheme = () => {
     initTheme,
   }
 }
+

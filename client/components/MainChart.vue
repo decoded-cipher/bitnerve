@@ -1,49 +1,55 @@
 <template>
-  <div class="h-full flex flex-col card-surface rounded-lg p-6">
-    <h2 class="text-center text-xl font-bold mb-6 text-primary uppercase">
+  <div class="h-full flex flex-col card-surface p-6">
+    <h2 class="text-center text-sm font-bold mb-6 text-primary uppercase tracking-wider">
       TOTAL ACCOUNT VALUE
     </h2>
     
     <!-- Chart Container -->
     <div ref="chartContainer" class="flex-1 min-h-0" style="position: relative;">
-      <apexchart
-        v-if="containerHeight > 0"
-        type="line"
-        :height="containerHeight"
-        :options="chartOptions"
-        :series="chartSeries"
-        class="w-full"
-      />
+      <ClientOnly>
+        <apexchart
+          v-if="containerHeight > 0"
+          type="line"
+          :height="containerHeight"
+          :options="chartOptions"
+          :series="chartSeries"
+          class="w-full"
+        />
+        <template #fallback>
+          <div class="flex items-center justify-center h-full">
+            <div class="text-secondary text-xs">Loading chart...</div>
+          </div>
+        </template>
+      </ClientOnly>
     </div>
 
     <!-- Legend -->
-    <div class="grid grid-cols-7 gap-4 mt-6 pt-6 border-t border-light-border dark:border-gray-800">
+    <div class="grid grid-cols-7 gap-4 mt-6 pt-6 border-t border-mono-border">
       <div
         v-for="model in modelsWithValues"
         :key="model.id"
         class="flex items-center space-x-2"
       >
         <div
-          class="w-3 h-3 rounded-full flex-shrink-0"
+          class="w-2 h-2 flex-shrink-0"
           :style="{ backgroundColor: model.color }"
         ></div>
         <div class="text-xs min-w-0">
-          <div class="font-semibold text-primary truncate">{{ model.name }}</div>
-          <div class="text-secondary">{{ formatPrice(model.currentValue) }}</div>
+          <div class="font-bold text-primary truncate uppercase tracking-tight">{{ model.name }}</div>
+          <div class="text-secondary text-xs">{{ formatPrice(model.currentValue) }}</div>
         </div>
       </div>
     </div>
 
     <!-- Footer -->
     <div class="mt-4 text-xs text-secondary">
-      <a href="https://nof1.ai" class="hover:opacity-80 transition-opacity">https://nof1.ai</a>
+      <a href="https://nof1.ai" class="hover:text-primary transition-colors">https://nof1.ai</a>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Model, AccountValue } from '~/types'
-import { useTheme } from '~/composables/useTheme'
 
 interface Props {
   models: Model[]
@@ -51,7 +57,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const { isDark } = useTheme()
 const chartContainer = ref<HTMLElement | null>(null)
 const containerHeight = ref(600)
 
@@ -71,13 +76,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateChartHeight)
-})
-
-// Watch for theme changes to re-render chart
-watch(() => isDark.value, () => {
-  nextTick(() => {
-    updateChartHeight()
-  })
 })
 
 // Get models with current values
@@ -109,11 +107,9 @@ const chartSeries = computed(() => {
 
 // Chart options
 const chartOptions = computed(() => {
-  const isDarkMode = isDark.value
-  
   return {
     chart: {
-      type: 'line',
+      type: 'line' as const,
       height: '100%',
       toolbar: {
         show: true,
@@ -129,27 +125,27 @@ const chartOptions = computed(() => {
       },
       zoom: {
         enabled: true,
-        type: 'x',
+        type: 'x' as const,
       },
       animations: {
         enabled: true,
-        easing: 'easeinout',
+        easing: 'easeinout' as const,
         speed: 800,
       },
       background: 'transparent',
-      fontFamily: 'Inter, system-ui, sans-serif',
+      fontFamily: 'Space Mono, monospace',
     },
     stroke: {
-      curve: 'smooth',
-      width: 2,
+      curve: 'smooth' as const,
+      width: 1.5,
     },
     colors: props.models.map(m => m.color),
     dataLabels: {
       enabled: false,
     },
     grid: {
-      borderColor: isDarkMode ? '#333' : '#e5e7eb',
-      strokeDashArray: 4,
+      borderColor: '#e5e5e5',
+      strokeDashArray: 2,
       xaxis: {
         lines: {
           show: false,
@@ -165,23 +161,25 @@ const chartOptions = computed(() => {
       type: 'datetime',
       labels: {
         style: {
-          colors: isDarkMode ? '#9ca3af' : '#6b7280',
-          fontSize: '11px',
+          colors: '#737373',
+          fontSize: '10px',
+          fontFamily: 'Space Mono, monospace',
         },
         format: 'MMM dd HH:mm',
       },
       axisBorder: {
-        color: isDarkMode ? '#333' : '#e5e7eb',
+        color: '#e5e5e5',
       },
       axisTicks: {
-        color: isDarkMode ? '#333' : '#e5e7eb',
+        color: '#e5e5e5',
       },
     },
     yaxis: {
       labels: {
         style: {
-          colors: isDarkMode ? '#9ca3af' : '#6b7280',
-          fontSize: '11px',
+          colors: '#737373',
+          fontSize: '10px',
+          fontFamily: 'Space Mono, monospace',
         },
         formatter: (val: number) => `$${Math.round(val / 1000)}k`,
       },
@@ -190,7 +188,11 @@ const chartOptions = computed(() => {
       show: false,
     },
     tooltip: {
-      theme: isDarkMode ? 'dark' : 'light',
+      theme: 'light',
+      style: {
+        fontFamily: 'Space Mono, monospace',
+        fontSize: '11px',
+      },
       x: {
         format: 'MMM dd, yyyy HH:mm',
       },
@@ -199,9 +201,9 @@ const chartOptions = computed(() => {
       },
     },
     theme: {
-      mode: isDarkMode ? 'dark' : 'light',
+      mode: 'light' as const,
     },
-  }
+  } as any // Type assertion to avoid TypeScript strict type checking
 })
 
 const formatPrice = (price: number): string => {

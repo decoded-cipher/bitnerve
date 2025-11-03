@@ -3,34 +3,68 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light mode colors */
+    --mono-bg: #ffffff;
+    --mono-surface: #fafafa;
+    --mono-border: #e5e5e5;
+    --mono-text: #0a0a0a;
+    --mono-text-secondary: #737373;
+    --mono-text-muted: #a3a3a3;
+    --mono-accent: #171717;
+    --mono-hover: #f5f5f5;
+  }
+
+  .dark {
+    /* Dark mode colors - Cursor-inspired palette */
+    --mono-bg: #1e1e1e;
+    --mono-surface: #252526;
+    --mono-border: #3e3e3e;
+    --mono-text: #cccccc;
+    --mono-text-secondary: #858585;
+    --mono-text-muted: #6a6a6a;
+    --mono-accent: #e5e5e5;
+    --mono-hover: #2a2d2e;
+  }
+
+  * {
+    @apply font-mono;
+  }
+  
   body {
-    @apply bg-white dark:bg-arena-darker text-light-text dark:text-white transition-colors duration-200;
+    @apply bg-mono-bg text-mono-text antialiased;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-arena-accent text-white px-4 py-2 rounded hover:bg-opacity-90 transition;
+    @apply bg-mono-accent text-mono-bg px-4 py-2 rounded-none hover:bg-opacity-90 transition-all uppercase text-xs tracking-wider;
   }
   
   .tab-active {
-    @apply bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white;
+    @apply bg-mono-accent text-mono-bg;
   }
   
   .tab-inactive {
-    @apply bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300;
+    @apply bg-mono-surface text-mono-text-secondary hover:bg-mono-hover;
   }
   
   .card-surface {
-    @apply bg-white dark:bg-arena-dark border border-light-border dark:border-gray-800;
+    @apply bg-mono-bg border border-mono-border;
   }
   
   .text-primary {
-    @apply text-light-text dark:text-white;
+    @apply text-mono-text;
   }
   
   .text-secondary {
-    @apply text-light-text-secondary dark:text-gray-400;
+    @apply text-mono-text-secondary;
   }
 }
 
