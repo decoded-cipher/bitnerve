@@ -3,13 +3,13 @@
     <div class="container mx-auto px-6 py-4 flex items-center justify-between">
       <!-- Logo -->
       <div class="flex-shrink-0">
-        <div class="text-primary">
-          <div class="font-bold text-2xl leading-tight tracking-tight">ALPHA</div>
-          <div class="flex items-baseline">
-            <span class="text-base leading-tight tracking-tight">ARENA</span>
-            <span class="text-xs text-secondary ml-2 font-normal">by Nof1</span>
-          </div>
-        </div>
+        <NuxtLink to="/" class="flex items-center">
+          <img 
+            :src="logoPath" 
+            alt="AI Trading Dashboard Logo" 
+            class="h-10 w-auto"
+          />
+        </NuxtLink>
       </div>
 
       <!-- Navigation Links -->
@@ -37,11 +37,11 @@
           class="p-2 border border-mono-border hover:bg-mono-hover transition-colors text-primary"
           aria-label="Toggle theme"
         >
-          <svg v-if="isDark" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364 6.364l-1.591 1.591M21 12H18.75m-3.75-3.75H21m-4.773 4.773l-1.591 1.591M12 18.75V21m-4.773-4.773l-1.591-1.591M5.25 12H3m3.75-3.75H3m3.659 1.591l-1.591-1.591m0 0L5.25 5.25m13.364 13.364L18.75 18.75" />
+          <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
           </svg>
-          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+          <svg v-if="!isDark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
           </svg>
         </button>
       </div>
@@ -51,6 +51,10 @@
 
 <script setup lang="ts">
 const { isDark, toggleTheme } = useTheme()
+
+const logoPath = computed(() => {
+  return isDark.value ? '/logo-white.png' : '/logo-black.png'
+})
 </script>
 
 <style scoped>

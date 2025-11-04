@@ -33,7 +33,34 @@
 </template>
 
 <script setup lang="ts">
+import { useHead, useFetch, computed } from '#imports'
 import type { CryptoPrice, Model, AccountValue, ModelPerformance, ModelPositions } from '~/types'
+
+useHead({
+  title: 'AI Trading Dashboard - Real-Time Crypto Trading Performance',
+  meta: [
+    {
+      name: 'description',
+      content: 'Monitor and compare AI trading models in real-time. Track crypto portfolio performance, positions, and trading analytics across multiple AI agents. Advanced dashboard with performance metrics and live data updates.',
+    },
+    {
+      name: 'keywords',
+      content: 'AI trading, crypto trading dashboard, portfolio tracker, trading models, cryptocurrency analytics, DeFi, algorithmic trading, real-time monitoring',
+    },
+    {
+      property: 'og:title',
+      content: 'AI Trading Dashboard - Real-Time Crypto Trading Performance',
+    },
+    {
+      property: 'og:description',
+      content: 'Monitor and compare AI trading models. Advanced dashboard with real-time performance metrics and trading analytics.',
+    },
+    {
+      property: 'og:type',
+      content: 'website',
+    },
+  ],
+})
 
 // Monochrome color palette - different shades of gray/black
 const MONO_COLORS = [
