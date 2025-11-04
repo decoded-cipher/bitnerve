@@ -1,5 +1,5 @@
 import { getDb, orders, accounts, positions } from '~/server/utils/db'
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, count } from 'drizzle-orm'
 
 // Model name mapping - same as in accounts.get.ts
 function getModelName(accountId: string): string {
@@ -12,7 +12,29 @@ export default defineEventHandler(async (event) => {
   try {
     const db = getDb()
     
-    // Get all closed orders (FILLED status) that closed positions
+    // Get pagination parameters from query
+    const query = getQuery(event)
+    const page = Math.max(1, parseInt(query.page as string) || 1)
+    const limit = Math.max(1, Math.min(100, parseInt(query.limit as string) || 20))
+    const offset = (page - 1) * limit
+    
+    // Get total count of completed trades (orders with position_id and FILLED status)
+    const totalResult = await db
+      .select({ count: count(orders.id) })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.status, 'FILLED'),
+          sql`${orders.position_id} IS NOT NULL`,
+          sql`${orders.filled_price} IS NOT NULL`,
+          sql`${orders.realized_pnl} IS NOT NULL`
+        )
+      )
+    
+    const total = Number(totalResult[0]?.count || 0)
+    const totalPages = Math.ceil(total / limit)
+    
+    // Get paginated closed orders (FILLED status) that closed positions
     // A completed trade is when an order closes a position (has position_id and realized_pnl)
     const closedOrders = await db
       .select({
@@ -28,29 +50,22 @@ export default defineEventHandler(async (event) => {
           eq(orders.status, 'FILLED'),
           // Only include orders that closed positions (have position_id)
           // These represent completed trades
-          sql`${orders.position_id} IS NOT NULL`
+          sql`${orders.position_id} IS NOT NULL`,
+          sql`${orders.filled_price} IS NOT NULL`,
+          sql`${orders.realized_pnl} IS NOT NULL`
         )
       )
       .orderBy(desc(orders.created_at))
-      .limit(100)
+      .limit(limit)
+      .offset(offset)
     
-    // Group by account and format the data
-    const tradesByAccount = new Map()
+    // Process orders into trades
+    const allTrades = []
     
     for (const { order, account, position } of closedOrders) {
       if (!order.filled_price || !order.realized_pnl) continue
       
-      const accountId = account.id
-      if (!tradesByAccount.has(accountId)) {
-        tradesByAccount.set(accountId, {
-          account_id: accountId,
-          model_name: getModelName(accountId),
-          trades: [],
-        })
-      }
-      
-      const accountData = tradesByAccount.get(accountId)
-      const modelName = getModelName(accountId)
+      const modelName = getModelName(account.id)
       
       // Calculate entry price from position or use order price
       const entryPrice = position ? parseFloat(position.entry_price) : parseFloat(order.price || '0')
@@ -78,7 +93,7 @@ export default defineEventHandler(async (event) => {
         holdingTimeFormatted = `${days}d ${hours}h`
       }
       
-      accountData.trades.push({
+      allTrades.push({
         id: order.id,
         model_name: modelName,
         trade_type: tradeType,
@@ -94,13 +109,19 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // Flatten to array of trades
-    const allTrades = Array.from(tradesByAccount.values()).flatMap(account => account.trades)
-    
-    // Sort by completed_at descending
+    // Sort by completed_at descending (in case of any ordering issues)
     allTrades.sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
     
-    return allTrades.slice(0, 100) // Return last 100 trades
+    // Return paginated response
+    return {
+      data: allTrades,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    }
   } catch (error) {
     console.error('Error fetching completed trades:', error)
     throw createError({

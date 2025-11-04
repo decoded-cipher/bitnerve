@@ -1,5 +1,5 @@
 import { getDb, agentInvocations, accounts } from '~/server/utils/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, count } from 'drizzle-orm'
 
 // Model name mapping - same as in accounts.get.ts
 function getModelName(accountId: string): string {
@@ -12,7 +12,22 @@ export default defineEventHandler(async (event) => {
   try {
     const db = getDb()
     
-    // Get all agent invocations with their accounts, ordered by most recent
+    // Get pagination parameters from query
+    const query = getQuery(event)
+    const page = Math.max(1, parseInt(query.page as string) || 1)
+    const limit = Math.max(1, Math.min(100, parseInt(query.limit as string) || 20))
+    const offset = (page - 1) * limit
+    
+    // Get total count for pagination
+    const totalResult = await db
+      .select({ count: count(agentInvocations.id) })
+      .from(agentInvocations)
+      .innerJoin(accounts, eq(agentInvocations.account_id, accounts.id))
+    
+    const total = Number(totalResult[0]?.count || 0)
+    const totalPages = Math.ceil(total / limit)
+    
+    // Get paginated agent invocations with their accounts, ordered by most recent
     const invocations = await db
       .select({
         invocation: agentInvocations,
@@ -21,7 +36,8 @@ export default defineEventHandler(async (event) => {
       .from(agentInvocations)
       .innerJoin(accounts, eq(agentInvocations.account_id, accounts.id))
       .orderBy(desc(agentInvocations.created_at))
-      .limit(100) // Get last 100 messages
+      .limit(limit)
+      .offset(offset)
     
     // Format the messages with full details
     const messages = invocations.map(({ invocation, account }) => {
@@ -61,8 +77,16 @@ export default defineEventHandler(async (event) => {
       }
     })
     
-    // Return all messages (not just one per account)
-    return messages
+    // Return paginated response
+    return {
+      data: messages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    }
   } catch (error) {
     console.error('Error fetching model chat:', error)
     throw createError({
