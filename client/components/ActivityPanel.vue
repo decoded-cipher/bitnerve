@@ -56,7 +56,15 @@ const activeTab = ref('COMPLETED TRADES')
   background: #e5e5e5;
 }
 
+.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #3e3e3e;
+}
+
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #d4d4d4;
+}
+
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #4e4e4e;
 }
 </style>

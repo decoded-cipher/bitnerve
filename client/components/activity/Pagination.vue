@@ -11,7 +11,7 @@
           'px-3 py-1 text-xs border rounded-sm transition-colors',
           pagination.page <= 1 || pending
             ? 'border-mono-border text-mono-text-secondary cursor-not-allowed opacity-50'
-            : 'border-mono-border text-mono-text-primary hover:bg-mono-hover cursor-pointer'
+            : 'border-mono-border text-primary hover:bg-mono-hover cursor-pointer'
         ]"
       >
         Prev
@@ -26,7 +26,7 @@
           'px-3 py-1 text-xs border rounded-sm transition-colors',
           pagination.page >= pagination.totalPages || pending
             ? 'border-mono-border text-mono-text-secondary cursor-not-allowed opacity-50'
-            : 'border-mono-border text-mono-text-primary hover:bg-mono-hover cursor-pointer'
+            : 'border-mono-border text-primary hover:bg-mono-hover cursor-pointer'
         ]"
       >
         Next

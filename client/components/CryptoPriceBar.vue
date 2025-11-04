@@ -14,13 +14,13 @@
                 v-if="crypto.icon"
                 :src="crypto.icon"
                 :alt="crypto.symbol"
-                class="w-8 h-8 object-contain rounded-full border border-gray-300 p-0.5"
+                class="w-8 h-8 object-contain rounded-full border border-mono-border p-0.5"
                 @error="handleImageError"
               />
               <span class="text-xs font-bold text-primary uppercase tracking-wider">{{ crypto.symbol }}</span>
               <span class="text-xs text-secondary">{{ formatPrice(crypto.price) }}</span>
             </div>
-            <div v-if="index < displayCryptoPrices.length - 1" class="h-4 w-px bg-gray-300"></div>
+            <div v-if="index < displayCryptoPrices.length - 1" class="h-4 w-px bg-mono-border"></div>
           </template> -->
         </div>
 
@@ -32,20 +32,20 @@
               v-if="highestIcon"
               :src="highestIcon"
               :alt="highest.model"
-              class="w-8 h-8 object-contain rounded-full border border-gray-300 p-0.5"
+              class="w-8 h-8 object-contain rounded-full border border-mono-border p-0.5"
               @error="handleImageError"
             />
             <span class="text-xs text-mono-text-secondary font-bold">{{ highest.model }}</span>
             <span class="text-xs font-bold text-primary">{{ formatPrice(highest.value) }}</span>
             <span :class="[
               'text-xs font-bold',
-              highest.change >= 0 ? 'text-green-600' : 'text-red-600'
+              highest.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             ]">
               {{ formatChange(highest.change) }}
             </span>
           </div>
           
-          <!-- <div class="h-4 w-px bg-gray-300"></div>
+          <!-- <div class="h-4 w-px bg-mono-border"></div>
           
           <div class="flex items-center space-x-2">
             <span class="text-xs text-secondary uppercase tracking-wider">Lowest:</span>
@@ -53,14 +53,14 @@
               v-if="lowestIcon"
               :src="lowestIcon"
               :alt="lowest.model"
-              class="w-8 h-8 object-contain rounded-full border border-gray-300 p-0.5"
+              class="w-8 h-8 object-contain rounded-full border border-mono-border p-0.5"
               @error="handleImageError"
             />
             <span class="text-xs font-bold text-primary">{{ lowest.model }}</span>
             <span class="text-xs text-secondary">{{ formatPrice(lowest.value) }}</span>
             <span :class="[
               'text-xs font-bold',
-              lowest.change >= 0 ? 'text-green-600' : 'text-red-600'
+              lowest.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             ]">
               {{ formatChange(lowest.change) }}
             </span>

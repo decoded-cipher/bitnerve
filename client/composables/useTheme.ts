@@ -18,8 +18,9 @@ export const useTheme = () => {
         isDark.value = savedTheme === 'dark'
       } else {
         // Check system preference if no saved theme
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        isDark.value = prefersDark
+        // const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        // isDark.value = prefersDark
+        isDark.value = false
       }
       updateTheme()
     }

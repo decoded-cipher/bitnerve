@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import type { Model, AccountValue } from '~/types'
 import { formatNumber } from '~/composables/useNumberFormat'
+import { useTheme } from '~/composables/useTheme'
 
 interface Props {
   models: Model[]
@@ -42,6 +43,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { isDark } = useTheme()
 const chartContainer = ref<HTMLElement | null>(null)
 const containerHeight = ref(600)
 
@@ -92,6 +94,7 @@ const chartSeries = computed(() => {
 
 // Chart options
 const chartOptions = computed(() => {
+  const darkMode = isDark.value
   
   const allValues = props.accountValues.flatMap(av => 
     Object.values(av.models)
@@ -127,7 +130,7 @@ const chartOptions = computed(() => {
       enabled: false,
     },
     grid: {
-      borderColor: '#e5e5e5',
+      borderColor: darkMode ? '#3e3e3e' : '#e5e5e5',
       strokeDashArray: 0,
       xaxis: {
         lines: {
@@ -148,7 +151,7 @@ const chartOptions = computed(() => {
       type: 'datetime',
       labels: {
         style: {
-          colors: '#000000',
+          colors: darkMode ? '#cccccc' : '#000000',
           fontSize: '10px',
           fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
@@ -157,24 +160,24 @@ const chartOptions = computed(() => {
       },
       axisBorder: {
         show: true,
-        color: '#000000'
+        color: darkMode ? '#3e3e3e' : '#000000'
       },
       axisTicks: {
         show: true,
         borderType: 'solid',
-        color: '#000000'
+        color: darkMode ? '#3e3e3e' : '#000000'
       },
     },
     yaxis: {
       // min: yAxisMin,
       // max: yAxisMax,
       // tickAmount: Math.ceil((yAxisMax - yAxisMin) / 5000),
-      min: 7000,
-      max: 13000,
-      tickAmount: 6,
+      min: 6000,
+      max: 16000,
+      tickAmount: 5,
       labels: {
         style: {
-          colors: '#000000',
+          colors: darkMode ? '#cccccc' : '#000000',
           fontSize: '10px',
           fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
@@ -188,12 +191,12 @@ const chartOptions = computed(() => {
       },
       axisBorder: {
         show: true,
-        color: '#000000'
+        color: darkMode ? '#3e3e3e' : '#000000'
       },
       axisTicks: {
         show: true,
         borderType: 'solid',
-        color: '#000000'
+        color: darkMode ? '#3e3e3e' : '#000000'
       },
     },
     legend: {
@@ -222,7 +225,7 @@ const chartOptions = computed(() => {
       offsetY: 0,
     },
     tooltip: {
-      theme: 'light',
+      theme: darkMode ? 'dark' : 'light',
       style: {
         fontFamily: 'Space Mono, monospace',
         fontSize: '11px',
@@ -235,7 +238,7 @@ const chartOptions = computed(() => {
       },
     },
     theme: {
-      mode: 'light' as const,
+      mode: (darkMode ? 'dark' : 'light') as const,
     },
     // annotations: {
     //   points: [],
