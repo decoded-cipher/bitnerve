@@ -1,5 +1,5 @@
 import { invokeAgent } from './lib/agent';
-import { getOrCreateAccount, getOpenPositions, updatePositionPnL } from './lib/exchange/helper';
+import { getOrCreateAccount, getOpenPositions, updatePositionPnL, createAccountSnapshot } from './lib/exchange/helper';
 import { fetchMarketData } from './lib/exchange';
 import { closeDatabase } from './config/database';
 import type { SessionState } from './types';
@@ -67,6 +67,13 @@ export class TradingBot {
         }
       }
 
+      // Create snapshot after updating positions
+      try {
+        await createAccountSnapshot(this.accountId);
+      } catch (error) {
+        console.error('Error creating account snapshot:', error);
+      }
+
       console.log(`📊 Updated ${positions.length} positions`);
     } catch (error) {
       console.error('Error updating positions:', error);
@@ -100,6 +107,15 @@ export class TradingBot {
 
       // Update session state
       this.sessionState.invocationCount++;
+      
+      // Create snapshot after each trading cycle
+      if (this.accountId) {
+        try {
+          await createAccountSnapshot(this.accountId);
+        } catch (error) {
+          console.error('Error creating account snapshot:', error);
+        }
+      }
       
     } catch (error) {
       console.error('Error in trading cycle:', error);

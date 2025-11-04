@@ -1,4 +1,4 @@
-import { db, accounts, positions, orders } from '../../config/database';
+import { db, accounts, positions, orders, accountSnapshots } from '../../config/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { isSupportedSymbol } from '../../config/exchange';
 
@@ -24,6 +24,10 @@ export async function getOrCreateAccount(initialBalance: number = 10000) {
       initial_balance: initialBalance.toString(),
       current_balance: initialBalance.toString(),
       total_pnl: '0',
+      account_value: initialBalance.toString(),
+      crypto_value: '0',
+      total_return_percent: '0',
+      sharpe_ratio: null,
     })
     .returning();
 
@@ -103,6 +107,9 @@ export async function updatePositionPnL(positionId: string, currentPrice: number
     .where(eq(positions.id, positionId))
     .returning();
 
+  // Update account metrics after position PnL update
+  await getAccountMetrics(updated.account_id);
+
   return updated;
 }
 
@@ -177,9 +184,13 @@ export async function createPosition(
       price: price.toString(),
       status: 'FILLED',
       filled_price: price.toString(),
+      trade_value: tradeValue.toString(),
       position_id: newPosition.id,
     })
     .returning();
+
+  // Update account metrics after position creation
+  await getAccountMetrics(accountId);
 
   return {
     position: newPosition,
@@ -282,9 +293,13 @@ export async function closePosition(
       status: 'FILLED',
       filled_price: currentPrice.toString(),
       realized_pnl: realizedPnL.toString(),
+      trade_value: tradeValue.toString(),
       position_id: existingPosition.id,
     })
     .returning();
+
+  // Update account metrics after position closure
+  await getAccountMetrics(accountId);
 
   return {
     realizedPnL,
@@ -293,7 +308,7 @@ export async function closePosition(
   };
 }
 
-// Get account metrics for agent
+// Get account metrics for agent and update database
 export async function getAccountMetrics(accountId: string) {
   const account = await getAccountBalance(accountId);
   const openPositions = await getOpenPositions(accountId);
@@ -314,7 +329,7 @@ export async function getAccountMetrics(accountId: string) {
     : 0;
 
   // Calculate Sharpe Ratio
-  let sharpeRatio = 0;
+  let sharpeRatio: number | null = null;
   if (closedOrders.length > 0 && initialBalance > 0) {
     try {
       const returns: number[] = [];
@@ -341,13 +356,52 @@ export async function getAccountMetrics(accountId: string) {
     }
   }
 
+  // Update account with calculated metrics
+  await db
+    .update(accounts)
+    .set({
+      account_value: accountValue.toString(),
+      crypto_value: unrealizedPnL.toString(),
+      total_return_percent: totalReturnPercent.toString(),
+      sharpe_ratio: sharpeRatio !== null ? sharpeRatio.toString() : null,
+      updated_at: new Date(),
+    })
+    .where(eq(accounts.id, accountId));
+
   return {
     availableCash: currentBalance,
     cryptoValue: unrealizedPnL,
     accountValue,
     positions: openPositions,
     totalReturnPercent,
-    sharpeRatio,
+    sharpeRatio: sharpeRatio || 0,
     initialBalance,
   };
+}
+
+// Create an account snapshot for historical tracking
+export async function createAccountSnapshot(accountId: string): Promise<void> {
+  const account = await getAccountBalance(accountId);
+  if (!account) {
+    throw new Error('Account not found');
+  }
+
+  // Get updated account metrics (this also updates the database)
+  await getAccountMetrics(accountId);
+  
+  // Get updated account with metrics
+  const updatedAccount = await getAccountBalance(accountId);
+
+  await db
+    .insert(accountSnapshots)
+    .values({
+      account_id: accountId,
+      account_value: updatedAccount.account_value || updatedAccount.current_balance,
+      current_balance: updatedAccount.current_balance,
+      crypto_value: updatedAccount.crypto_value || '0',
+      total_pnl: updatedAccount.total_pnl,
+      total_return_percent: updatedAccount.total_return_percent,
+      sharpe_ratio: updatedAccount.sharpe_ratio,
+      snapshot_at: new Date(),
+    });
 }
