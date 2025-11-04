@@ -50,5 +50,18 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    postgresUser: process.env.NUXT_POSTGRES_USER || '',
+    postgresPassword: process.env.NUXT_POSTGRES_PASSWORD || '',
+    postgresHost: process.env.NUXT_POSTGRES_HOST || '',
+    postgresPort: process.env.NUXT_POSTGRES_PORT || '',
+    postgresDb: process.env.NUXT_POSTGRES_DB || '',
+    dbConnectionString: process.env.NUXT_DB_CONNECTION_STRING || '',
+    nodeEnv: process.env.NUXT_NODE_ENV || '',
+    
+    public: {
+      // apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+    },
+  },
 })
 

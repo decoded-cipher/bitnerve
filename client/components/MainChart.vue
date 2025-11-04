@@ -64,20 +64,28 @@ onUnmounted(() => {
 })
 
 // Get models with current values
+// accountValues contains total account value = current_balance + unrealized PnL
+// This includes both realized PnL (in current_balance via total_pnl) and unrealized PnL from open positions
 const modelsWithValues = computed(() => {
   if (props.accountValues.length === 0) return props.models.map(m => ({ ...m, currentValue: 10000 }))
   const latest = props.accountValues[props.accountValues.length - 1]
   return props.models.map(model => ({
     ...model,
+    // latest.models[model.id] is the total account value (account_value from database)
     currentValue: latest.models[model.id] || 10000
   }))
 })
 
 // Prepare chart series
+// This plots TOTAL ACCOUNT VALUE over time:
+// - account_value = current_balance (includes realized PnL) + unrealized PnL from open positions
+// - Includes both realized PnL from closed positions (via total_pnl) and unrealized PnL from open positions
 const chartSeries = computed(() => {
   return props.models.map(model => {
     const data = props.accountValues.map(av => ({
       x: av.timestamp.getTime(),
+      // y is the total account value at this timestamp
+      // This includes: initial_balance + realized PnL (from total_pnl) + unrealized PnL (from open positions)
       y: av.models[model.id] || 10000
     }))
     
@@ -169,9 +177,9 @@ const chartOptions = computed(() => {
       // min: yAxisMin,
       // max: yAxisMax,
       // tickAmount: Math.ceil((yAxisMax - yAxisMin) / 5000),
-      min: 7000,
-      max: 13000,
-      tickAmount: 6,
+      min: 6000,
+      max: 16000,
+      tickAmount: 5,
       labels: {
         style: {
           colors: '#000000',

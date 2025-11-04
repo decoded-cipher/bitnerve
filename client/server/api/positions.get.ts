@@ -40,6 +40,9 @@ export default defineEventHandler(async (event) => {
             total_pnl: parseFloat(account.total_pnl),
             account_value: account.account_value ? parseFloat(account.account_value) : parseFloat(account.current_balance),
             crypto_value: cryptoValue,
+            // Include performance metrics
+            total_return_percent: account.total_return_percent ? parseFloat(account.total_return_percent) : null,
+            sharpe_ratio: account.sharpe_ratio ? parseFloat(account.sharpe_ratio) : null,
           },
           positions: [],
           total_unrealized_pnl: cryptoValue,

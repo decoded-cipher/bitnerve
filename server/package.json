@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:sync": "bun run src/scripts/sync-to-neon.ts"
   },
   "dependencies": {
     "@noble/ed25519": "^2.3.0",

@@ -3,8 +3,13 @@ import postgres from 'postgres';
 import * as schema from './schema';
 
 
-export function connectionString(): string {
-  const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB } = process.env;
+export function connectionString(env?: string): string {
+  const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, DB_CONNECTION_STRING, NODE_ENV } = process.env;
+  const environment = env || NODE_ENV;
+  
+  if (environment === 'production' && DB_CONNECTION_STRING) {
+    return DB_CONNECTION_STRING;
+  }
   return `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}`;
 }
 

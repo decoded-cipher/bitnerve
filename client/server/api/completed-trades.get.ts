@@ -67,12 +67,17 @@ export default defineEventHandler(async (event) => {
       
       const modelName = getModelName(account.id)
       
+      // Use stored trade_value if available, otherwise calculate
       // Calculate entry price from position or use order price
       const entryPrice = position ? parseFloat(position.entry_price) : parseFloat(order.price || '0')
       const exitPrice = parseFloat(order.filled_price)
       const quantity = parseFloat(order.quantity)
+      
+      // Use stored trade_value if available, otherwise calculate notional
+      const tradeValue = order.trade_value ? parseFloat(order.trade_value) : null
       const notionalEntry = entryPrice * quantity
       const notionalExit = exitPrice * quantity
+      
       const realizedPnl = parseFloat(order.realized_pnl)
       
       // Determine trade type and holding time
@@ -104,8 +109,11 @@ export default defineEventHandler(async (event) => {
         quantity: quantity,
         notional_entry: notionalEntry,
         notional_exit: notionalExit,
+        trade_value: tradeValue, // Include stored trade_value
         holding_time: holdingTimeFormatted || '0m',
         net_pnl: realizedPnl,
+        // Calculate return percentage for this trade
+        return_percent: notionalEntry > 0 ? (realizedPnl / notionalEntry) * 100 : 0,
       })
     }
     

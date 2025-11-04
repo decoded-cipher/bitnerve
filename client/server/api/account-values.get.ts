@@ -1,4 +1,4 @@
-import { getDb, accounts, accountSnapshots } from '~/server/utils/db'
+import { getDb, accounts, accountSnapshots, orders, positions } from '~/server/utils/db'
 import { eq, desc, asc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
@@ -33,33 +33,51 @@ export default defineEventHandler(async (event) => {
       snapshotsByAccount.get(snapshot.account_id)!.push(snapshot)
     }
     
-    // If we have snapshots, use them
+    // If we have snapshots, use them for accurate historical data
     if (allSnapshots.length > 0) {
-      // Get unique timestamps from all snapshots
-      const uniqueTimestamps = Array.from(new Set(allSnapshots.map(s => s.snapshot_at.getTime())))
-        .sort()
-        .map(ts => new Date(ts))
+      // Group snapshots by timestamp to ensure we get all accounts at each point
+      const snapshotsByTimestamp = new Map<number, typeof allSnapshots>()
       
-      // Build account values array
-      for (const timestamp of uniqueTimestamps) {
+      for (const snapshot of allSnapshots) {
+        const timestamp = new Date(snapshot.snapshot_at).getTime()
+        if (!snapshotsByTimestamp.has(timestamp)) {
+          snapshotsByTimestamp.set(timestamp, [])
+        }
+        snapshotsByTimestamp.get(timestamp)!.push(snapshot)
+      }
+      
+      // Get unique timestamps and sort them
+      const uniqueTimestamps = Array.from(snapshotsByTimestamp.keys()).sort()
+      
+      // Build account values array from snapshots
+      for (const timestampMs of uniqueTimestamps) {
+        const timestamp = new Date(timestampMs)
+        const snapshotsAtTime = snapshotsByTimestamp.get(timestampMs) || []
+        
         const entry: { timestamp: Date; models: Record<string, number> } = {
           timestamp,
           models: {},
         }
         
-        // For each account, find the closest snapshot at or before this timestamp
+        // For each account, find its snapshot at this exact timestamp
         for (const account of allAccounts) {
-          const accountSnapshots = snapshotsByAccount.get(account.id) || []
-          // Find the latest snapshot at or before this timestamp
-          let closestSnapshot = accountSnapshots
-            .filter(s => new Date(s.snapshot_at).getTime() <= timestamp.getTime())
-            .sort((a, b) => new Date(b.snapshot_at).getTime() - new Date(a.snapshot_at).getTime())[0]
+          const snapshot = snapshotsAtTime.find(s => s.account_id === account.id)
           
-          if (closestSnapshot && closestSnapshot.account_value) {
-            entry.models[account.id] = parseFloat(closestSnapshot.account_value)
-          } else if (account.account_value) {
-            // Fallback to current account_value if no snapshot
-            entry.models[account.id] = parseFloat(account.account_value)
+          if (snapshot && snapshot.account_value) {
+            entry.models[account.id] = parseFloat(snapshot.account_value)
+          } else {
+            // Find the latest snapshot before this timestamp
+            const accountSnapshots = snapshotsByAccount.get(account.id) || []
+            const closestSnapshot = accountSnapshots
+              .filter(s => new Date(s.snapshot_at).getTime() <= timestampMs)
+              .sort((a, b) => new Date(b.snapshot_at).getTime() - new Date(a.snapshot_at).getTime())[0]
+            
+            if (closestSnapshot && closestSnapshot.account_value) {
+              entry.models[account.id] = parseFloat(closestSnapshot.account_value)
+            } else if (account.account_value) {
+              // Fallback to current account_value if no snapshot found
+              entry.models[account.id] = parseFloat(account.account_value)
+            }
           }
         }
         
@@ -67,27 +85,28 @@ export default defineEventHandler(async (event) => {
           accountValues.push(entry)
         }
       }
-    }
-    
-    // If no snapshots, add current account values as a single point
-    if (accountValues.length === 0) {
-      const currentEntry: { timestamp: Date; models: Record<string, number> } = {
-        timestamp: new Date(),
-        models: {},
-      }
       
-      for (const account of allAccounts) {
-        // Use stored account_value, or calculate from current_balance if not stored
-        if (account.account_value) {
-          currentEntry.models[account.id] = parseFloat(account.account_value)
-        } else {
-          // Fallback: use current_balance (shouldn't happen if metrics are updated)
-          currentEntry.models[account.id] = parseFloat(account.current_balance)
+      // Add current value as the latest point if not already included
+      const latestTimestamp = uniqueTimestamps.length > 0 ? uniqueTimestamps[uniqueTimestamps.length - 1] : null
+      const currentTime = Date.now()
+      if (!latestTimestamp || (currentTime - latestTimestamp) > 60000) { // More than 1 minute difference
+        const currentEntry: { timestamp: Date; models: Record<string, number> } = {
+          timestamp: new Date(),
+          models: {},
         }
-      }
-      
-      if (Object.keys(currentEntry.models).length > 0) {
-        accountValues.push(currentEntry)
+        
+        for (const account of allAccounts) {
+          if (account.account_value) {
+            currentEntry.models[account.id] = parseFloat(account.account_value)
+          } else {
+            // Fallback: use current_balance
+            currentEntry.models[account.id] = parseFloat(account.current_balance)
+          }
+        }
+        
+        if (Object.keys(currentEntry.models).length > 0) {
+          accountValues.push(currentEntry)
+        }
       }
     }
     
