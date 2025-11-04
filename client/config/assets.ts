@@ -4,6 +4,7 @@
  */
 
 // Import coin icons
+import btcIcon from '~/assets/icons/coin/btc.svg'
 import ethIcon from '~/assets/icons/coin/eth.svg'
 import solIcon from '~/assets/icons/coin/sol.svg'
 import bnbIcon from '~/assets/icons/coin/bnb.svg'
@@ -40,7 +41,7 @@ export const COINS: Record<string, CoinConfig> = {
   BTC: {
     symbol: 'BTC',
     fullName: 'Bitcoin',
-    icon: '', // No BTC icon available yet
+    icon: btcIcon,
   },
   ETH: {
     symbol: 'ETH',
