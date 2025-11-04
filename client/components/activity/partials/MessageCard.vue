@@ -10,7 +10,7 @@
         v-if="modelIcon"
         :src="modelIcon"
         :alt="message.model_name"
-        class="w-6 h-6 object-contain rounded-sm flex-shrink-0 rounded-full border border-gray-300 p-0.5"
+        class="w-6 h-6 object-contain rounded-full border border-gray-300 p-0.5"
         @error="handleImageError"
       />
       <span class="font-bold text-xs text-primary uppercase">{{ message.model_name }}</span>

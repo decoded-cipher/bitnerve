@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-blue-50 p-4 border-b-2 border-mono-border flex flex-col space-y-4">
+  <div :class="[backgroundColorClass, 'p-4 border-b-2 border-mono-border flex flex-col space-y-4']">
     
     <!-- Model Header -->
     <div class="flex items-center space-x-2">
@@ -10,7 +10,7 @@
         class="w-8 h-8 object-contain rounded-full border border-gray-300 p-0.5"
         @error="handleImageError"
       />
-      <span class="font-bold text-sm text-blue-800 uppercase tracking-tight">{{ modelPositions.model.name }}</span>
+      <span :class="['font-bold text-sm uppercase tracking-tight', textColorClass]">{{ modelPositions.model.name }}</span>
     </div>
 
     <!-- Positions Table -->
@@ -75,7 +75,7 @@
       <div class="text-secondary text-[10px]">
         AVAILABLE CASH: {{ formatPrice(modelPositions.availableCash) }}
       </div>
-      <div :class="['text-xs', modelPositions.totalUnrealizedPnl >= 0 ? 'text-blue-600' : 'text-red-600']">
+      <div :class="['text-xs', modelPositions.totalUnrealizedPnl >= 0 ? 'text-green-600' : 'text-red-600']">
         TOTAL UNREALIZED P&L: {{ formatPnl(modelPositions.totalUnrealizedPnl) }}
       </div>
     </div>
@@ -87,7 +87,7 @@
 import { computed } from 'vue'
 import type { ModelPositions } from '~/types'
 import { formatNumber } from '~/composables/useNumberFormat'
-import { getCoinIcon, getModelIcon } from '~/config/assets'
+import { getCoinIcon, getModelIcon, getModelColor } from '~/config/assets'
 
 interface Props {
   modelPositions: ModelPositions
@@ -96,6 +96,32 @@ interface Props {
 const props = defineProps<Props>()
 
 const modelIcon = computed(() => getModelIcon(props.modelPositions.model.name))
+const modelColor = computed(() => getModelColor(props.modelPositions.model.name))
+
+// Map color names to Tailwind classes
+const backgroundColorClass = computed(() => {
+  const colorMap: Record<string, string> = {
+    gray: 'bg-gray-50',
+    green: 'bg-green-50',
+    orange: 'bg-orange-50',
+    sky: 'bg-sky-50',
+    blue: 'bg-blue-50',
+    purple: 'bg-purple-50',
+  }
+  return colorMap[modelColor.value] || 'bg-blue-50'
+})
+
+const textColorClass = computed(() => {
+  const colorMap: Record<string, string> = {
+    gray: 'text-gray-800',
+    green: 'text-green-800',
+    orange: 'text-orange-800',
+    sky: 'text-sky-800',
+    blue: 'text-blue-800',
+    purple: 'text-purple-800',
+  }
+  return colorMap[modelColor.value] || 'text-blue-800'
+})
 
 const formatPrice = (price: number): string => {
   const formatted = formatNumber(price)

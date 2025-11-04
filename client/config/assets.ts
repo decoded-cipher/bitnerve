@@ -29,6 +29,7 @@ export interface ModelConfig {
   identifier: string | string[] // Pattern(s) to match in model name
   fullName: string
   icon: string
+  color?: string // Color theme for the model
 }
 
 /**
@@ -77,31 +78,37 @@ export const MODELS: ModelConfig[] = [
     identifier: ['groq', 'grok'],
     fullName: 'Groq',
     icon: groqIcon,
+    color: 'gray',
   },
   {
     identifier: ['gpt', 'openai'],
     fullName: 'GPT',
     icon: gptIcon,
+    color: 'green',
   },
   {
     identifier: ['claude', 'anthropic'],
     fullName: 'Claude',
     icon: claudeIcon,
+    color: 'orange',
   },
   {
     identifier: ['gemini', 'google'],
     fullName: 'Gemini',
     icon: geminiIcon,
+    color: 'sky',
   },
   {
     identifier: ['deepseek'],
     fullName: 'DeepSeek',
     icon: deepseekIcon,
+    color: 'blue',
   },
   {
     identifier: ['qwen'],
     fullName: 'Qwen',
     icon: qwenIcon,
+    color: 'purple',
   },
 ]
 
@@ -175,4 +182,14 @@ export function getCoinFullName(symbol: string): string {
 export function getModelFullName(modelName: string): string {
   const config = getModelConfig(modelName)
   return config?.fullName || modelName
+}
+
+/**
+ * Get model color by model name
+ * @param modelName - Model name
+ * @returns Color name or 'blue' as default if not found
+ */
+export function getModelColor(modelName: string): string {
+  const config = getModelConfig(modelName)
+  return config?.color || 'blue'
 }
