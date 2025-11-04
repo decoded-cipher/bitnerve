@@ -8,7 +8,7 @@ export default defineNuxtConfig({
       htmlAttrs: {
         lang: "en",
       },
-      title: "AI Trading Dashboard - Real-Time Crypto Trading Performance",
+      title: "BitNerve - Real-Time Crypto Trading Performance",
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -22,14 +22,14 @@ export default defineNuxtConfig({
           content:
             "AI trading, crypto trading, trading dashboard, portfolio tracker, trading models, cryptocurrency, DeFi, algorithmic trading",
         },
-        { name: "author", content: "AI Trading Dashboard" },
+        { name: "author", content: "Arjun Krishna" },
         { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
         { name: "theme-color", content: "#0a0a0a" },
 
         // Open Graph / Social Media Meta Tags
         { property: "og:type", content: "website" },
         { property: "og:url", content: "og:url" },
-        { property: "og:title", content: "AI Trading Dashboard - Real-Time Crypto Trading Performance" },
+        { property: "og:title", content: "BitNerve - Real-Time Crypto Trading Performance" },
         {
           property: "og:description",
           content:
@@ -38,12 +38,12 @@ export default defineNuxtConfig({
         { property: "og:image", content: "/logo.png" },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
-        { property: "og:site_name", content: "AI Trading Dashboard" },
+        { property: "og:site_name", content: "BitNerve" },
 
         // Twitter Card Meta Tags
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:url", content: "twitter:url" },
-        { name: "twitter:title", content: "AI Trading Dashboard - Real-Time Crypto Trading Performance" },
+        { name: "twitter:title", content: "BitNerve - Real-Time Crypto Trading Performance" },
         {
           name: "twitter:description",
           content:
@@ -118,7 +118,7 @@ export default defineNuxtConfig({
           innerHTML: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebApplication",
-            name: "AI Trading Dashboard",
+            name: "BitNerve",
             description:
               "Real-time monitoring and comparison of AI trading models with cryptocurrency portfolio analytics",
             url: process.env.NUXT_PUBLIC_SITE_URL || "",
@@ -135,22 +135,21 @@ export default defineNuxtConfig({
             },
           }),
         },
-        // Google Analytics (replace UA-XXXXXXXXX with your actual tracking ID)
-        {
-          async: true,
-          src: "https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID",
-        },
-        {
-          innerHTML: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'GA_MEASUREMENT_ID', {
-              page_path: window.location.pathname,
-            });
-          `,
-          type: "text/javascript",
-        },
+        // {
+        //   async: true,
+        //   src: "https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID",
+        // },
+        // {
+        //   innerHTML: `
+        //     window.dataLayer = window.dataLayer || [];
+        //     function gtag(){dataLayer.push(arguments);}
+        //     gtag('js', new Date());
+        //     gtag('config', 'GA_MEASUREMENT_ID', {
+        //       page_path: window.location.pathname,
+        //     });
+        //   `,
+        //   type: "text/javascript",
+        // },
       ],
     },
   },
@@ -169,7 +168,7 @@ export default defineNuxtConfig({
 
   site: {
     url: process.env.NUXT_PUBLIC_SITE_URL,
-    name: process.env.NUXT_PUBLIC_SITE_NAME,
+    name: "BitNerve",
   },
 
   build: {
@@ -201,7 +200,7 @@ export default defineNuxtConfig({
     public: {
       site: {
         url: process.env.NUXT_PUBLIC_SITE_URL,
-        name: process.env.NUXT_PUBLIC_SITE_NAME,
+        name: "BitNerve",
       },
     },
   },

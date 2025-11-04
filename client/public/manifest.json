@@ -1,7 +1,7 @@
 {
-  "name": "AI Trading Dashboard",
-  "short_name": "AI Trading",
-  "description": "Real-time cryptocurrency trading dashboard for monitoring AI trading models and portfolio performance",
+  "name": "BitNerve",
+  "short_name": "BitNerve",
+  "description": "Real-time cryptocurrency trading dashboard for monitoring AI trading and portfolio performance",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

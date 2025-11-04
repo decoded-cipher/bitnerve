@@ -1,6 +1,6 @@
 <template>
   <div class="bg-mono-surface border-b-2 border-mono-border">
-    <div class="container mx-auto px-6 py-3">
+    <div class="container mx-auto px-6 py-2.5">
       <div v-if="loading" class="flex items-center justify-center">
         <div class="text-secondary text-xs">Loading data...</div>
       </div>

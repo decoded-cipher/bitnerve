@@ -1,7 +1,7 @@
 {
-  "name": "ai-trading-bot-server",
+  "name": "bitnerve-server",
   "version": "1.0.0",
-  "description": "Backend server for AI Trading Bot",
+  "description": "Backend server for BitNerve AI Trading Bot",
   "license": "MIT",
   "author": "Arjun Krishna",
   "type": "module",

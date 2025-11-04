@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-screen overflow-hidden bg-mono-bg">
     
-    <!-- <AppHeader /> -->
+    <AppHeader />
     <CryptoPriceBar 
       :crypto-prices="cryptoPrices" 
       :performance="performance"
@@ -37,7 +37,7 @@ import { useHead, useFetch, computed } from '#imports'
 import type { CryptoPrice, Model, AccountValue, ModelPerformance, ModelPositions } from '~/types'
 
 useHead({
-  title: 'AI Trading Dashboard - Real-Time Crypto Trading Performance',
+  title: 'BitNerve - Real-Time Crypto Trading Performance',
   meta: [
     {
       name: 'description',
@@ -49,7 +49,7 @@ useHead({
     },
     {
       property: 'og:title',
-      content: 'AI Trading Dashboard - Real-Time Crypto Trading Performance',
+      content: 'BitNerve - Real-Time Crypto Trading Performance',
     },
     {
       property: 'og:description',

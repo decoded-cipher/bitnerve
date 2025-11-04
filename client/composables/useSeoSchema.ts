@@ -11,7 +11,7 @@ export const useSeoSchema = () => {
     return {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "AI Trading Dashboard",
+      name: "BitNerve",
       url: siteUrl,
       logo: `${siteUrl}/logo.png`,
       description: "Real-time AI trading dashboard for monitoring cryptocurrency portfolio performance",
