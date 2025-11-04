@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-mono-surface border-b border-mono-border">
+  <div class="bg-mono-surface border-b-2 border-mono-border">
     <div class="container mx-auto px-6 py-3">
       <div class="flex items-center justify-between">
         <!-- Crypto Prices -->
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import type { CryptoPrice, ModelPerformance } from '~/types'
+import { formatNumber } from '~/composables/useNumberFormat'
 
 interface Props {
   cryptoPrices: CryptoPrice[]
@@ -48,10 +49,8 @@ const highest = computed(() => props.performance.highest)
 const lowest = computed(() => props.performance.lowest)
 
 const formatPrice = (price: number): string => {
-  if (price >= 1) {
-    return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
-  return `$${price.toFixed(4)}`
+  const formatted = formatNumber(price)
+  return `$${formatted}`
 }
 </script>
 

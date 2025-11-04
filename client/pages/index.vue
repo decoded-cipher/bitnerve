@@ -1,19 +1,22 @@
 <template>
   <div class="flex flex-col h-screen overflow-hidden bg-mono-bg">
-    <AppHeader />
+    
+    <!-- <AppHeader /> -->
     <CryptoPriceBar 
       :crypto-prices="cryptoPrices" 
       :performance="performance"
     />
-    <!-- Main content area - single frame -->
+    
     <div class="flex-1 flex overflow-hidden">
-      <!-- Main Chart - Takes most of the space -->
-      <div class="flex-1 overflow-hidden p-6">
+      <div class="flex-1 flex flex-col overflow-hidden">
         <MainChart :models="models" :account-values="accountValues" />
+
+        <div class="h-28 p-4 text-center text-xs text-secondary border-t border-mono-border">
+          Data updated every 5 minutes. Last updated at {{ new Date().toLocaleTimeString() }}.
+        </div>
       </div>
 
-      <!-- Model Positions Panel - Reduced width, scrollable -->
-      <div class="w-96 flex-shrink-0 overflow-hidden border-l border-mono-border">
+      <div class="w-96 flex-shrink-0 overflow-hidden">
         <ModelPositionsPanel :model-positions="modelPositions" :models="models" />
       </div>
     </div>

@@ -1,8 +1,8 @@
 <template>
-  <div class="h-full flex flex-col card-surface p-6">
-    <h2 class="text-center text-sm font-bold mb-6 text-primary uppercase tracking-wider">
+  <div class="h-full flex flex-col card-surface p-6 border-none">
+    <!-- <h2 class="text-center text-sm font-bold mb-6 text-primary uppercase tracking-wider">
       TOTAL ACCOUNT VALUE
-    </h2>
+    </h2> -->
     
     <!-- Chart Container -->
     <div ref="chartContainer" class="flex-1 min-h-0" style="position: relative;">
@@ -22,34 +22,12 @@
         </template>
       </ClientOnly>
     </div>
-
-    <!-- Legend -->
-    <div class="grid grid-cols-7 gap-4 mt-6 pt-6 border-t border-mono-border">
-      <div
-        v-for="model in modelsWithValues"
-        :key="model.id"
-        class="flex items-center space-x-2"
-      >
-        <div
-          class="w-2 h-2 flex-shrink-0"
-          :style="{ backgroundColor: model.color }"
-        ></div>
-        <div class="text-xs min-w-0">
-          <div class="font-bold text-primary truncate uppercase tracking-tight">{{ model.name }}</div>
-          <div class="text-secondary text-xs">{{ formatPrice(model.currentValue) }}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="mt-4 text-xs text-secondary">
-      <a href="https://nof1.ai" class="hover:text-primary transition-colors">https://nof1.ai</a>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Model, AccountValue } from '~/types'
+import { formatNumber } from '~/composables/useNumberFormat'
 
 interface Props {
   models: Model[]
@@ -107,25 +85,23 @@ const chartSeries = computed(() => {
 
 // Chart options
 const chartOptions = computed(() => {
+  
+  const allValues = props.accountValues.flatMap(av => 
+    Object.values(av.models)
+  )
+  // const maxValue = allValues.length > 0 ? Math.max(...allValues) : 15000
+  // const yAxisMax = Math.max(15000, Math.ceil(maxValue / 5000) * 5000)
+  // const yAxisMin = 5000
+
   return {
     chart: {
       type: 'line' as const,
       height: '100%',
       toolbar: {
-        show: true,
-        tools: {
-          download: true,
-          selection: false,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true,
-        },
+        show: false,
       },
       zoom: {
-        enabled: true,
-        type: 'x' as const,
+        enabled: false,
       },
       animations: {
         enabled: true,
@@ -145,10 +121,10 @@ const chartOptions = computed(() => {
     },
     grid: {
       borderColor: '#e5e5e5',
-      strokeDashArray: 2,
+      strokeDashArray: 0,
       xaxis: {
         lines: {
-          show: false,
+          show: true,
         },
       },
       yaxis: {
@@ -156,36 +132,84 @@ const chartOptions = computed(() => {
           show: true,
         },
       },
+      padding: {
+        left: -2,
+        right: 0,
+      },
     },
     xaxis: {
       type: 'datetime',
       labels: {
         style: {
-          colors: '#737373',
+          colors: '#000000',
           fontSize: '10px',
+          fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
         },
         format: 'MMM dd HH:mm',
       },
       axisBorder: {
-        color: '#e5e5e5',
+        show: true,
+        color: '#000000'
       },
       axisTicks: {
-        color: '#e5e5e5',
+        show: true,
+        borderType: 'solid',
+        color: '#000000'
       },
     },
     yaxis: {
+      // min: yAxisMin,
+      // max: yAxisMax,
+      // tickAmount: Math.ceil((yAxisMax - yAxisMin) / 5000),
       labels: {
         style: {
-          colors: '#737373',
+          colors: '#000000',
           fontSize: '10px',
+          fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
         },
-        formatter: (val: number) => `$${Math.round(val / 1000)}k`,
+        offsetX: -15,
+        offsetY: 0,
+        formatter: (val: number) => {
+          if (val === 0) return '$0'
+          return `$${val.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+        },
+      },
+      axisBorder: {
+        show: true,
+        color: '#000000'
+      },
+      axisTicks: {
+        show: true,
+        borderType: 'solid',
+        color: '#000000'
       },
     },
     legend: {
-      show: false,
+      show: true,
+      position: 'right' as const,
+      floating: false,
+      fontSize: '10px',
+      fontFamily: 'Space Mono, monospace',
+      fontWeight: 400,
+      formatter: (seriesName: string, opts: any) => {
+        const model = props.models.find(m => m.name === seriesName)
+        if (!model) return seriesName
+        const currentValue = modelsWithValues.value.find(m => m.id === model.id)?.currentValue || 0
+        return formatPrice(currentValue)
+      },
+      markers: {
+        width: 8,
+        height: 8,
+        radius: 0,
+      },
+      itemMargin: {
+        horizontal: 10,
+        vertical: 2,
+      },
+      offsetX: 0,
+      offsetY: 0,
     },
     tooltip: {
       theme: 'light',
@@ -197,17 +221,47 @@ const chartOptions = computed(() => {
         format: 'MMM dd, yyyy HH:mm',
       },
       y: {
-        formatter: (val: number) => `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        formatter: (val: number) => `$${formatNumber(val)}`,
       },
     },
     theme: {
       mode: 'light' as const,
     },
-  } as any // Type assertion to avoid TypeScript strict type checking
+    // annotations: {
+    //   points: [],
+    //   text: [
+    //     {
+    //       x: '0%',
+    //       y: '100%',
+    //       textAnchor: 'start',
+    //       fontSize: '10px',
+    //       fontFamily: 'Space Mono, monospace',
+    //       fontWeight: 400,
+    //       fillColor: '#737373',
+    //       opacity: 0.5,
+    //       xAdjust: 10,
+    //       yAdjust: -10,
+    //     },
+    //     {
+    //       x: '100%',
+    //       y: '100%',
+    //       textAnchor: 'end',
+    //       fontSize: '10px',
+    //       fontFamily: 'Space Mono, monospace',
+    //       fontWeight: 400,
+    //       fillColor: '#737373',
+    //       opacity: 0.5,
+    //       xAdjust: -10,
+    //       yAdjust: -10,
+    //     },
+    //   ],
+    // },
+  } as any
 })
 
 const formatPrice = (price: number): string => {
-  return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatted = formatNumber(price)
+  return `$${formatted}`
 }
 </script>
 

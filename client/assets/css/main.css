@@ -7,7 +7,7 @@
     /* Light mode colors */
     --mono-bg: #ffffff;
     --mono-surface: #fafafa;
-    --mono-border: #e5e5e5;
+    --mono-border: #000;
     --mono-text: #0a0a0a;
     --mono-text-secondary: #737373;
     --mono-text-muted: #a3a3a3;

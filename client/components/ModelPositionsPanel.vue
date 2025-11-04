@@ -1,77 +1,76 @@
 <template>
   <div class="h-full flex flex-col bg-mono-bg">
     <!-- Tabs -->
-    <div class="flex space-x-1 p-4 border-b border-mono-border flex-shrink-0">
+    <div class="flex">
       <button
         v-for="tab in tabs"
         :key="tab"
         :class="[
-          'px-3 py-2 text-xs uppercase font-bold tracking-wider transition-colors relative',
+          'w-full px-3 py-2 text-xs uppercase font-bold tracking-wider transition-colors relative border-b-2 border-l-2 border-mono-border',
           activeTab === tab ? 'tab-active' : 'tab-inactive'
         ]"
         @click="activeTab = tab"
       >
         {{ tab }}
-        <span
-          v-if="activeTab === tab"
-          class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
-        ></span>
       </button>
     </div>
 
     <!-- Filter -->
-    <div class="p-4 border-b border-mono-border flex-shrink-0">
+    <!-- <div class="p-4 border-b-2 border-l-2 border-mono-border flex-shrink-0">
       <select class="bg-mono-surface text-primary text-xs px-3 py-2 border border-mono-border w-full focus:outline-none focus:border-mono-accent uppercase tracking-wider">
         <option>FILTER: ALL MODELS ▼</option>
       </select>
-    </div>
+    </div> -->
 
     <!-- Tab Content -->
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 overflow-y-auto border-l-2 border-mono-border">
+      
       <!-- COMPLETED TRADES Tab -->
-      <div v-if="activeTab === 'COMPLETED TRADES'" class="p-4">
-        <div class="mb-4 text-xs text-secondary uppercase tracking-wider">
+      <div v-if="activeTab === 'COMPLETED TRADES'">
+        
+        <!-- <div class="mb-4 text-xs text-secondary uppercase tracking-wider">
           Showing Last 100 Trades
-        </div>
-        <div class="space-y-3">
-          <div
-            v-for="trade in completedTrades"
-            :key="trade.id"
-            class="border-b border-mono-border pb-3 last:border-b-0"
-          >
-            <div class="flex flex-col space-y-1 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-primary uppercase">{{ trade.model_name }}</span>
-                <span class="text-secondary">{{ formatDateTime(trade.completed_at) }}</span>
-              </div>
-              <div class="text-secondary">{{ trade.trade_type }}</div>
-              <div class="flex items-center justify-between">
-                <span class="text-primary font-bold">{{ trade.coin }}</span>
-                <span class="text-secondary">
-                  {{ formatPrice(trade.entry_price) }} → {{ formatPrice(trade.exit_price) }}
-                </span>
-              </div>
-              <div class="flex items-center justify-between text-secondary">
-                <span>Qty: {{ formatQuantity(trade.quantity) }}</span>
-                <span>
-                  {{ formatPrice(trade.notional_entry) }} → {{ formatPrice(trade.notional_exit) }}
-                </span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-secondary">Holding: {{ trade.holding_time }}</span>
-                <span :class="[
-                  'font-bold',
-                  trade.net_pnl >= 0 ? 'text-primary' : 'text-mono-text-secondary'
-                ]">
-                  {{ formatPnl(trade.net_pnl) }}
-                </span>
-              </div>
+        </div> -->
+        
+        <div
+          v-for="trade in completedTrades"
+          :key="trade.id"
+          class="border-b border-mono-border pb-3 last:border-b-0 p-4"
+        >
+          <div class="flex flex-col space-y-1 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-primary uppercase">{{ trade.model_name }}</span>
+              <span class="text-secondary">{{ formatDateTime(trade.completed_at) }}</span>
+            </div>
+            <div class="text-secondary">{{ trade.trade_type }}</div>
+            <div class="flex items-center justify-between">
+              <span class="text-primary font-bold">{{ trade.coin }}</span>
+              <span class="text-secondary">
+                {{ formatPrice(trade.entry_price) }} → {{ formatPrice(trade.exit_price) }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-secondary">
+              <span>Qty: {{ formatQuantity(trade.quantity) }}</span>
+              <span>
+                {{ formatPrice(trade.notional_entry) }} → {{ formatPrice(trade.notional_exit) }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-secondary">Holding: {{ trade.holding_time }}</span>
+              <span :class="[
+                'font-bold',
+                trade.net_pnl >= 0 ? 'text-primary' : 'text-mono-text-secondary'
+              ]">
+                {{ formatPnl(trade.net_pnl) }}
+              </span>
             </div>
           </div>
-          <div v-if="completedTrades.length === 0" class="text-center text-secondary text-xs py-8">
-            No completed trades yet
-          </div>
         </div>
+        
+        <div v-if="completedTrades.length === 0" class="text-center text-secondary text-xs py-8">
+          No completed trades yet
+        </div>
+
       </div>
 
       <!-- MODELCHAT Tab -->
@@ -153,9 +152,9 @@
                 <tr>
                   <th class="px-2 py-2 text-left font-bold">SIDE</th>
                   <th class="px-2 py-2 text-left font-bold">COIN</th>
-                  <th class="px-2 py-2 text-left font-bold">LEVERAGE</th>
+                  <!-- <th class="px-2 py-2 text-left font-bold">LEVERAGE</th> -->
                   <th class="px-2 py-2 text-left font-bold">NOTIONAL</th>
-                  <th class="px-2 py-2 text-left font-bold">EXIT PLAN</th>
+                  <!-- <th class="px-2 py-2 text-left font-bold">EXIT PLAN</th> -->
                   <th class="px-2 py-2 text-left font-bold">UNREAL P&L</th>
                 </tr>
               </thead>
@@ -167,11 +166,11 @@
                 >
                   <td class="px-2 py-2 text-primary font-bold uppercase">{{ position.side }}</td>
                   <td class="px-2 py-2 text-primary">{{ position.coin }}</td>
-                  <td class="px-2 py-2 text-primary">{{ position.leverage }}X</td>
+                  <!-- <td class="px-2 py-2 text-primary">{{ position.leverage }}X</td> -->
                   <td class="px-2 py-2 text-secondary">{{ formatPrice(position.notional) }}</td>
-                  <td class="px-2 py-2">
+                  <!-- <td class="px-2 py-2">
                     <button class="text-primary hover:text-mono-accent transition-colors uppercase tracking-wider text-xs">VIEW</button>
-                  </td>
+                  </td> -->
                   <td :class="[
                     'px-2 py-2 font-bold',
                     position.unrealizedPnl >= 0 ? 'text-primary' : 'text-mono-text-secondary'
@@ -192,12 +191,15 @@
           No open positions
         </div>
       </div>
+
+      
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { ModelPositions, Model } from '~/types'
+import { formatNumber } from '~/composables/useNumberFormat'
 
 interface Props {
   modelPositions: ModelPositions[]
@@ -207,7 +209,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const tabs = ['COMPLETED TRADES', 'MODELCHAT', 'POSITIONS']
-const activeTab = ref('POSITIONS')
+const activeTab = ref('COMPLETED TRADES')
 const expandedMessages = ref(new Set<string>())
 
 // Fetch completed trades
@@ -276,25 +278,18 @@ const formatDateTime = (dateString: string): string => {
 }
 
 const formatPrice = (price: number): string => {
-  if (price >= 1) {
-    return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
-  return `$${price.toFixed(4)}`
+  const formatted = formatNumber(price)
+  return `$${formatted}`
 }
 
 const formatQuantity = (quantity: number): string => {
-  if (quantity >= 1) {
-    return quantity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }
-  return quantity.toFixed(4)
+  return formatNumber(quantity)
 }
 
 const formatPnl = (pnl: number): string => {
   const sign = pnl >= 0 ? '+' : ''
-  if (Math.abs(pnl) >= 1) {
-    return `${sign}$${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
-  return `${sign}$${pnl.toFixed(2)}`
+  const formatted = formatNumber(pnl)
+  return `${sign}$${formatted}`
 }
 </script>
 
