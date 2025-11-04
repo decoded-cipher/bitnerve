@@ -17,7 +17,7 @@
       </div>
 
       <div class="w-96 flex-shrink-0 overflow-hidden">
-        <ModelPositionsPanel :model-positions="modelPositions" :models="models" />
+        <ActivityPanel :model-positions="modelPositions" :models="models" />
       </div>
     </div>
   </div>
