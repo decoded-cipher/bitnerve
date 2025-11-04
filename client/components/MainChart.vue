@@ -6,7 +6,13 @@
     
     <!-- Chart Container -->
     <div ref="chartContainer" class="flex-1 min-h-0" style="position: relative;">
-      <ClientOnly>
+      <div v-if="loading" class="flex items-center justify-center h-full">
+        <div class="text-secondary text-xs">Loading chart data...</div>
+      </div>
+      <div v-else-if="accountValues.length === 0 || models.length === 0" class="flex items-center justify-center h-full">
+        <div class="text-secondary text-xs">No chart data available</div>
+      </div>
+      <ClientOnly v-else>
         <apexchart
           v-if="containerHeight > 0"
           type="line"
@@ -32,6 +38,7 @@ import { formatNumber } from '~/composables/useNumberFormat'
 interface Props {
   models: Model[]
   accountValues: AccountValue[]
+  loading?: boolean
 }
 
 const props = defineProps<Props>()

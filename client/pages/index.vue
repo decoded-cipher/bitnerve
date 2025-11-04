@@ -5,11 +5,16 @@
     <CryptoPriceBar 
       :crypto-prices="cryptoPrices" 
       :performance="performance"
+      :loading="isPricesLoading || isPerformanceLoading"
     />
     
     <div class="flex-1 flex overflow-hidden">
       <div class="flex-1 flex flex-col overflow-hidden">
-        <MainChart :models="models" :account-values="accountValues" />
+        <MainChart 
+          :models="models" 
+          :account-values="accountValues"
+          :loading="isAccountsLoading || isAccountValuesLoading"
+        />
 
         <div class="h-28 p-4 text-center text-xs text-secondary border-t border-mono-border">
           Data updated every 5 minutes. Last updated at {{ new Date().toLocaleTimeString() }}.
@@ -17,7 +22,11 @@
       </div>
 
       <div class="w-96 flex-shrink-0 overflow-hidden">
-        <ActivityPanel :model-positions="modelPositions" :models="models" />
+        <ActivityPanel 
+          :model-positions="modelPositions" 
+          :models="models"
+          :loading="isAccountsLoading || isPositionsLoading"
+        />
       </div>
     </div>
   </div>
@@ -38,7 +47,7 @@ const MONO_COLORS = [
 ]
 
 // Fetch accounts (models)
-const { data: accountsData } = await useFetch<Array<{
+const { data: accountsData, pending: isAccountsLoading } = await useFetch<Array<{
   id: string
   model_name: string
   initial_balance: number
@@ -82,7 +91,7 @@ const models = computed<Model[]>(() => {
 })
 
 // Fetch account values
-const { data: accountValuesData } = await useFetch<Array<{
+const { data: accountValuesData, pending: isAccountValuesLoading } = await useFetch<Array<{
   timestamp: string | Date
   models: Record<string, number>
 }>>('/api/account-values')
@@ -95,7 +104,7 @@ const accountValues = computed<AccountValue[]>(() => {
 })
 
 // Fetch positions
-const { data: positionsData } = await useFetch<Array<{
+const { data: positionsData, pending: isPositionsLoading } = await useFetch<Array<{
   account_id: string
   total_unrealized_pnl: number
   available_cash: number
@@ -132,13 +141,13 @@ const modelPositions = computed<ModelPositions[]>(() => {
 })
 
 // Fetch crypto prices
-const { data: cryptoPricesData } = await useFetch<CryptoPrice[]>('/api/crypto-prices')
+const { data: cryptoPricesData, pending: isPricesLoading } = await useFetch<CryptoPrice[]>('/api/crypto-prices')
 const cryptoPrices = computed<CryptoPrice[]>(() => {
   return Array.isArray(cryptoPricesData.value) ? cryptoPricesData.value : []
 })
 
 // Fetch performance
-const { data: performanceData } = await useFetch<{
+const { data: performanceData, pending: isPerformanceLoading } = await useFetch<{
   highest: {
     model: string
     value: number

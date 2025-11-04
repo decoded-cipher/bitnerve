@@ -19,7 +19,7 @@
     <div class="flex-1 overflow-y-auto border-l-2 border-mono-border">
       <CompletedTradesTab v-if="activeTab === 'COMPLETED TRADES'" />
       <ModelChatTab v-else-if="activeTab === 'MODELCHAT'" :models="models" />
-      <PositionsTab v-else-if="activeTab === 'POSITIONS'" :model-positions="modelPositions" />
+      <PositionsTab v-else-if="activeTab === 'POSITIONS'" :model-positions="modelPositions" :loading="loading" />
     </div>
   </div>
 </template>
@@ -33,6 +33,7 @@ import PositionsTab from '~/components/activity/Positions.vue'
 interface Props {
   modelPositions: ModelPositions[]
   models: Model[]
+  loading?: boolean
 }
 
 defineProps<Props>()

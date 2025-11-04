@@ -75,7 +75,7 @@
       <div class="text-secondary text-[10px]">
         AVAILABLE CASH: {{ formatPrice(modelPositions.availableCash) }}
       </div>
-      <div :class="['text-[13px]', modelPositions.totalUnrealizedPnl >= 0 ? 'text-blue-600' : 'text-red-600']">
+      <div :class="['text-xs', modelPositions.totalUnrealizedPnl >= 0 ? 'text-blue-600' : 'text-red-600']">
         TOTAL UNREALIZED P&L: {{ formatPnl(modelPositions.totalUnrealizedPnl) }}
       </div>
     </div>
