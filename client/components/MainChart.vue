@@ -169,6 +169,9 @@ const chartOptions = computed(() => {
       // min: yAxisMin,
       // max: yAxisMax,
       // tickAmount: Math.ceil((yAxisMax - yAxisMin) / 5000),
+      min: 7500,
+      max: 12500,
+      tickAmount: 6,
       labels: {
         style: {
           colors: '#000000',

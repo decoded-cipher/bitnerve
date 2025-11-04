@@ -106,7 +106,7 @@ const modelIcon = computed(() => getModelIcon(props.trade.model_name))
 const coinIcon = computed(() => getCoinIcon(props.trade.coin))
 const tradeType = computed(() => props.trade.trade_type.toLowerCase())
 const tradeTypeColor = computed(() => 
-  tradeType.value === 'long' ? 'text-green-600' : 'text-red-600'
+  tradeType.value === 'long trade' ? 'text-green-600' : 'text-red-600'
 )
 const pnlColor = computed(() => 
   props.trade.net_pnl >= 0 ? 'text-green-600' : 'text-red-600'

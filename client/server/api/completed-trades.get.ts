@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
       const realizedPnl = parseFloat(order.realized_pnl)
       
       // Determine trade type and holding time
-      const tradeType = position ? (position.side === 'LONG' ? 'long trade' : 'short trade') : 'trade'
+      const tradeType = position ? (position.side === 'BUY' ? 'long trade' : 'short trade') : 'trade'
       const holdingTime = position 
         ? Math.round((new Date(order.created_at).getTime() - new Date(position.created_at).getTime()) / (1000 * 60)) // minutes
         : 0

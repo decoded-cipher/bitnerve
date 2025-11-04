@@ -26,6 +26,11 @@ export default defineEventHandler(async (event) => {
     
     for (const { position, account } of allPositions) {
       if (!positionsByAccount.has(account.id)) {
+        // Use stored crypto_value if available, otherwise calculate from positions
+        const cryptoValue = account.crypto_value 
+          ? parseFloat(account.crypto_value) 
+          : 0
+        
         positionsByAccount.set(account.id, {
           account_id: account.id,
           account: {
@@ -33,9 +38,11 @@ export default defineEventHandler(async (event) => {
             initial_balance: parseFloat(account.initial_balance),
             current_balance: parseFloat(account.current_balance),
             total_pnl: parseFloat(account.total_pnl),
+            account_value: account.account_value ? parseFloat(account.account_value) : parseFloat(account.current_balance),
+            crypto_value: cryptoValue,
           },
           positions: [],
-          total_unrealized_pnl: 0,
+          total_unrealized_pnl: cryptoValue,
           available_cash: parseFloat(account.current_balance),
         })
       }
@@ -56,7 +63,8 @@ export default defineEventHandler(async (event) => {
       }
       
       accountData.positions.push(positionData)
-      accountData.total_unrealized_pnl += positionData.unrealized_pnl
+      // Use stored total_unrealized_pnl from account, don't recalculate
+      // The stored value is already the sum of all position unrealized_pnl
       
       // Calculate notional value (quantity * current_price)
       const notional = Math.abs(positionData.quantity * positionData.current_price)

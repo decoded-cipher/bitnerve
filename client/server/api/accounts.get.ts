@@ -16,12 +16,18 @@ export default defineEventHandler(async (event) => {
     const allAccounts = await db.select().from(accounts).orderBy(accounts.created_at)
     
     // Convert numeric values to numbers and add model_name
+    // Use stored metrics from the database
     return allAccounts.map(account => ({
       id: account.id,
       model_name: getModelName(account.id),
       initial_balance: parseFloat(account.initial_balance),
       current_balance: parseFloat(account.current_balance),
       total_pnl: parseFloat(account.total_pnl),
+      // Use stored calculated metrics
+      account_value: account.account_value ? parseFloat(account.account_value) : parseFloat(account.current_balance),
+      crypto_value: account.crypto_value ? parseFloat(account.crypto_value) : 0,
+      total_return_percent: account.total_return_percent ? parseFloat(account.total_return_percent) : 0,
+      sharpe_ratio: account.sharpe_ratio ? parseFloat(account.sharpe_ratio) : null,
       created_at: account.created_at,
       updated_at: account.updated_at,
     }))

@@ -1,5 +1,5 @@
-import { getDb, accounts, orders } from '~/server/utils/db'
-import { eq, desc, sql } from 'drizzle-orm'
+import { getDb, accounts, accountSnapshots } from '~/server/utils/db'
+import { eq, desc, asc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -12,90 +12,82 @@ export default defineEventHandler(async (event) => {
       return []
     }
     
-    // For each account, try to reconstruct some history from orders
-    // If we don't have enough history, generate some points based on current state
+    // Use account snapshots for historical data, fallback to current account_value
     const accountValues: Array<{
       timestamp: Date
       models: Record<string, number>
     }> = []
     
-    // Get the earliest and latest order timestamps across all accounts
-    const earliestOrder = await db
-      .select({
-        created_at: orders.created_at,
-      })
-      .from(orders)
-      .orderBy(orders.created_at)
-      .limit(1)
+    // Get all snapshots ordered by timestamp
+    const allSnapshots = await db
+      .select()
+      .from(accountSnapshots)
+      .orderBy(asc(accountSnapshots.snapshot_at))
     
-    const latestOrder = await db
-      .select({
-        created_at: orders.created_at,
-      })
-      .from(orders)
-      .orderBy(desc(orders.created_at))
-      .limit(1)
+    // Group snapshots by account_id
+    const snapshotsByAccount = new Map<string, typeof allSnapshots>()
+    for (const snapshot of allSnapshots) {
+      if (!snapshotsByAccount.has(snapshot.account_id)) {
+        snapshotsByAccount.set(snapshot.account_id, [])
+      }
+      snapshotsByAccount.get(snapshot.account_id)!.push(snapshot)
+    }
     
-    const startTime = earliestOrder.length > 0 
-      ? new Date(earliestOrder[0].created_at)
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
-    const endTime = latestOrder.length > 0
-      ? new Date(latestOrder[0].created_at)
-      : new Date()
-    
-    // Generate timestamps (daily points over the time range, max 200 points)
-    const timeRange = endTime.getTime() - startTime.getTime()
-    const numPoints = Math.min(200, Math.max(30, Math.floor(timeRange / (24 * 60 * 60 * 1000))))
-    const interval = timeRange / numPoints
-    
-    // For each account, calculate values over time
-    // This is a simplified approach - ideally we'd have account balance snapshots
-    for (const account of allAccounts) {
-      const initialBalance = parseFloat(account.initial_balance)
-      const currentBalance = parseFloat(account.current_balance)
-      const totalPnl = parseFloat(account.total_pnl)
+    // If we have snapshots, use them
+    if (allSnapshots.length > 0) {
+      // Get unique timestamps from all snapshots
+      const uniqueTimestamps = Array.from(new Set(allSnapshots.map(s => s.snapshot_at.getTime())))
+        .sort()
+        .map(ts => new Date(ts))
       
-      // Get orders for this account to reconstruct some history
-      const accountOrders = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.account_id, account.id))
-        .orderBy(orders.created_at)
-      
-      // Calculate balance progression
-      // This is simplified - we're estimating based on order timestamps and PnL
-      let runningBalance = initialBalance
-      let orderIndex = 0
-      
-      for (let i = 0; i < numPoints; i++) {
-        const timestamp = new Date(startTime.getTime() + i * interval)
+      // Build account values array
+      for (const timestamp of uniqueTimestamps) {
+        const entry: { timestamp: Date; models: Record<string, number> } = {
+          timestamp,
+          models: {},
+        }
         
-        // Check if we have a value for this timestamp
-        if (!accountValues[i]) {
-          accountValues[i] = {
-            timestamp,
-            models: {},
+        // For each account, find the closest snapshot at or before this timestamp
+        for (const account of allAccounts) {
+          const accountSnapshots = snapshotsByAccount.get(account.id) || []
+          // Find the latest snapshot at or before this timestamp
+          let closestSnapshot = accountSnapshots
+            .filter(s => new Date(s.snapshot_at).getTime() <= timestamp.getTime())
+            .sort((a, b) => new Date(b.snapshot_at).getTime() - new Date(a.snapshot_at).getTime())[0]
+          
+          if (closestSnapshot && closestSnapshot.account_value) {
+            entry.models[account.id] = parseFloat(closestSnapshot.account_value)
+          } else if (account.account_value) {
+            // Fallback to current account_value if no snapshot
+            entry.models[account.id] = parseFloat(account.account_value)
           }
         }
         
-        // Process orders up to this timestamp
-        while (
-          orderIndex < accountOrders.length &&
-          new Date(accountOrders[orderIndex].created_at) <= timestamp
-        ) {
-          const order = accountOrders[orderIndex]
-          if (order.realized_pnl) {
-            runningBalance += parseFloat(order.realized_pnl)
-          }
-          orderIndex++
+        if (Object.keys(entry.models).length > 0) {
+          accountValues.push(entry)
         }
-        
-        // Estimate balance at this point
-        // Interpolate between initial and current balance based on progress
-        const progress = i / (numPoints - 1)
-        const estimatedBalance = initialBalance + (totalPnl * progress)
-        
-        accountValues[i].models[account.id] = estimatedBalance
+      }
+    }
+    
+    // If no snapshots, add current account values as a single point
+    if (accountValues.length === 0) {
+      const currentEntry: { timestamp: Date; models: Record<string, number> } = {
+        timestamp: new Date(),
+        models: {},
+      }
+      
+      for (const account of allAccounts) {
+        // Use stored account_value, or calculate from current_balance if not stored
+        if (account.account_value) {
+          currentEntry.models[account.id] = parseFloat(account.account_value)
+        } else {
+          // Fallback: use current_balance (shouldn't happen if metrics are updated)
+          currentEntry.models[account.id] = parseFloat(account.current_balance)
+        }
+      }
+      
+      if (Object.keys(currentEntry.models).length > 0) {
+        accountValues.push(currentEntry)
       }
     }
     
