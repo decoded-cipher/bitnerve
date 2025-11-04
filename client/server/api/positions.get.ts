@@ -41,10 +41,12 @@ export default defineEventHandler(async (event) => {
       }
       
       const accountData = positionsByAccount.get(account.id)
+      const sideDisplay = position.side === 'BUY' ? 'LONG' : position.side === 'SELL' ? 'SHORT' : position.side
+
       const positionData = {
         id: position.id,
         symbol: position.symbol,
-        side: position.side as 'LONG' | 'SHORT',
+        side: sideDisplay as 'LONG' | 'SHORT',
         quantity: parseFloat(position.quantity),
         entry_price: parseFloat(position.entry_price),
         current_price: parseFloat(position.current_price),

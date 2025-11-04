@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 space-y-6">
+  <div>
     <ModelPositionsCard
       v-for="modelData in modelPositions"
       :key="modelData.model.id"
