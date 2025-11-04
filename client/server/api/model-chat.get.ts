@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       .orderBy(desc(agentInvocations.created_at))
       .limit(100) // Get last 100 messages
     
-    // Format the messages
+    // Format the messages with full details
     const messages = invocations.map(({ invocation, account }) => {
       // Extract model name and format it
       const modelName = getModelName(account.id)
@@ -54,22 +54,15 @@ export default defineEventHandler(async (event) => {
         message: messageText,
         timestamp: formattedTimestamp,
         created_at: invocation.created_at,
+        // Include full agent invocation details
+        user_prompt: invocation.user_prompt || '',
+        chain_of_thought: invocation.chain_of_thought || '',
+        agent_response: invocation.agent_response || null,
       }
     })
     
-    // Group by account and get the most recent message per account
-    const messagesByAccount = new Map()
-    
-    for (const message of messages) {
-      if (!messagesByAccount.has(message.account_id)) {
-        messagesByAccount.set(message.account_id, message)
-      }
-    }
-    
-    // Return array of unique messages (one per account, most recent)
-    return Array.from(messagesByAccount.values()).sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
+    // Return all messages (not just one per account)
+    return messages
   } catch (error) {
     console.error('Error fetching model chat:', error)
     throw createError({

@@ -24,6 +24,9 @@ interface ModelChatMessage {
   message: string
   timestamp: string
   created_at: string
+  user_prompt?: string
+  chain_of_thought?: string
+  agent_response?: any
 }
 
 interface Props {
