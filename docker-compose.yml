@@ -25,14 +25,28 @@ services:
   #   build:
   #     context: ./client
   #     dockerfile: Dockerfile
+  #     args:
+  #       NODE_ENV: ${NODE_ENV:-production}
+  #       HOST: ${HOST:-0.0.0.0}
+  #       PORT: ${CLIENT_PORT:-3000}
   #   container_name: ai-trading-bot-client
   #   restart: unless-stopped
+  #   env_file:
+  #     - client/.env
   #   ports:
   #     - "${CLIENT_PORT:-3000}:3000"
   #   environment:
-  #     NODE_ENV: production
-  #     HOST: 0.0.0.0
+  #     # NUXT_POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  #     # NUXT_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  #     # NUXT_POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+  #     # NUXT_POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  #     # NUXT_POSTGRES_DB: ${POSTGRES_DB:-trading_bot}
+  #     # NUXT_DB_CONNECTION_STRING: ${DB_CONNECTION_STRING:-}
+  #     # NUXT_NODE_ENV: ${NODE_ENV:-production}
   #     PORT: 3000
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
   #   networks:
   #     - trading-bot-network
 
@@ -40,15 +54,17 @@ services:
   #   build:
   #     context: ./server
   #     dockerfile: Dockerfile
+  #     args:
+  #       NODE_ENV: ${NODE_ENV:-production}
   #   container_name: ai-trading-bot-server
   #   restart: unless-stopped
-  #   ports:
-  #     - "${SERVER_PORT:-3000}:3000"
   #   env_file:
-  #     - ./server/.env
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-trading_bot}
-  #     POSTGRES_HOST: postgres
+  #     - server/.env
+  #   ports:
+  #     - "${SERVER_PORT:-3001}:3000"
+  #   # environment:
+  #   #   # Computed value - build connection string if DB_CONNECTION_STRING not provided
+  #   #   DATABASE_URL: ${DB_CONNECTION_STRING:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-trading_bot}}
   #   depends_on:
   #     postgres:
   #       condition: service_healthy

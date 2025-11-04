@@ -20,7 +20,9 @@ RUN bun run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+# Environment variables will be provided via docker-compose
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
 
 # Copy package files and install only production dependencies
 COPY package.json bun.lockb ./

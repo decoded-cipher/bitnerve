@@ -17,9 +17,14 @@ RUN npm run build
 # Production runner - minimal Node.js runtime
 FROM node:20-alpine AS runner
 
-ENV NODE_ENV=production \
-    HOST=0.0.0.0 \
-    PORT=3000
+# Environment variables will be provided via docker-compose
+ARG NODE_ENV=production
+ARG HOST=0.0.0.0
+ARG PORT=3000
+
+ENV NODE_ENV=${NODE_ENV} \
+    HOST=${HOST} \
+    PORT=${PORT}
 
 WORKDIR /app
 
