@@ -2,17 +2,12 @@ export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
   const siteUrl = config.public.site.url
 
-  if (!siteUrl) {
-    console.warn('NUXT_PUBLIC_SITE_URL is not set')
-    return
-  }
-
   useHead({
     meta: [
       { property: 'og:url', content: siteUrl },
-      { property: 'og:image', content: `${siteUrl}/og-image.png` },
+      { property: 'og:image', content: `${siteUrl}/og-image.jpg` },
       { name: 'twitter:url', content: siteUrl },
-      { name: 'twitter:image', content: `${siteUrl}/twitter-image.png` },
+      { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` },
     ],
     link: [
       { rel: 'canonical', href: siteUrl },

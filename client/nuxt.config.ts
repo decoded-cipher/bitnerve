@@ -35,7 +35,7 @@ export default defineNuxtConfig({
           content:
             "Monitor and compare AI trading models in real-time. Track crypto portfolio performance, positions, and trading analytics.",
         },
-        { property: "og:image", content: "/logo.png" },
+        { property: "og:image", content: "/og-image.jpg" },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
         { property: "og:site_name", content: "BitNerve" },
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
           content:
             "Monitor and compare AI trading models. Track performance, positions, and analytics across multiple AI trading agents.",
         },
-        { name: "twitter:image", content: "/logo.png" },
+        { name: "twitter:image", content: "/og-image.jpg" },
 
         // Additional SEO Meta Tags
         { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -121,7 +121,7 @@ export default defineNuxtConfig({
             name: "BitNerve",
             description:
               "Real-time monitoring and comparison of AI trading models with cryptocurrency portfolio analytics",
-            url: process.env.NUXT_PUBLIC_SITE_URL || "",
+            url: "https://bitnerve.arjunkrishna.dev",
             applicationCategory: "FinanceApplication",
             offers: {
               "@type": "Offer",
@@ -167,7 +167,7 @@ export default defineNuxtConfig({
   modules: ["radix-vue/nuxt"],
 
   site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL,
+    url: "https://bitnerve.arjunkrishna.dev",
     name: "BitNerve",
   },
 
@@ -199,7 +199,7 @@ export default defineNuxtConfig({
     
     public: {
       site: {
-        url: process.env.NUXT_PUBLIC_SITE_URL,
+        url: "https://bitnerve.arjunkrishna.dev",
         name: "BitNerve",
       },
     },

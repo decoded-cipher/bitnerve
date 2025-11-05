@@ -3,11 +3,6 @@ export const useSeoSchema = () => {
   const siteUrl = config.public.site.url
 
   const generateOrganizationSchema = () => {
-    if (!siteUrl) {
-      console.warn('NUXT_PUBLIC_SITE_URL is not set, skipping organization schema')
-      return null
-    }
-
     return {
       "@context": "https://schema.org",
       "@type": "Organization",
