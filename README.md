@@ -1,17 +1,6 @@
 # BitNerve
 
-**AI-powered crypto trading engine for perpetual futures — built for precision, speed, and nerve, running multiple models across accounts and assets in parallel.**
-
-
-## ⚡ The Origin Story
-
-One evening, while scrolling through Twitter, I stumbled upon a tweet about [**Nof1.ai**](https://nof1.ai) — a bold experiment called **Alpha Arena**, where multiple large language models trade **live crypto markets** against each other with real money on the line.
-
-That idea instantly clicked. It wasn’t just about profit. It was about seeing how *different AIs behave when exposed to real volatility*.  
-
-> Which model reacts calmly? Which overtrades? Which learns to survive?
-
-That single tweet sparked **BitNerve** — a personal weekend build turned ongoing experiment — my own version of Alpha Arena, reimagined for open experimentation and built from scratch in just a few days.
+AI-powered crypto trading engine for perpetual futures — built for precision, speed, and nerve, running multiple models across accounts and assets in parallel.
 
 
 ## 🧠 What is BitNerve?
