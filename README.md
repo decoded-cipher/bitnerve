@@ -99,9 +99,3 @@ It’s meant for research, not financial advice or guaranteed performance.
 > Powered by curiosity, not greed.
 
 BitNerve began as a spark — an attempt to explore how AI behaves when the numbers stop being theoretical. Now it’s evolving into a transparent, experimental playground for intelligent trading systems.
-
-> **Multiple AIs. Real markets. One nerve.**
-
-Explore BitNerve.  
-Trade with intelligence.  
-Watch the models learn to survive.
