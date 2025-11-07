@@ -81,13 +81,31 @@ const modelsWithValues = computed(() => {
 // - account_value = current_balance (includes realized PnL) + unrealized PnL from open positions
 // - Includes both realized PnL from closed positions (via total_pnl) and unrealized PnL from open positions
 const chartSeries = computed(() => {
+  // Detect gaps in the data
+  const timestamps = props.accountValues.map(av => av.timestamp.getTime())
+  const MIN_GAP = 60 * 60 * 1000 // 1 hour threshold
+  
   return props.models.map(model => {
-    const data = props.accountValues.map(av => ({
-      x: av.timestamp.getTime(),
-      // y is the total account value at this timestamp
-      // This includes: initial_balance + realized PnL (from total_pnl) + unrealized PnL (from open positions)
-      y: av.models[model.id] || 10000
-    }))
+    const data: Array<{ x: number; y: number | null }> = []
+    
+    props.accountValues.forEach((av, index) => {
+      // Check if there's a large gap from previous point
+      if (index > 0) {
+        const prevTimestamp = timestamps[index - 1]
+        const currentTimestamp = timestamps[index]
+        const gap = currentTimestamp - prevTimestamp
+        
+        if (gap > MIN_GAP) {
+          // Insert a null point to break the line
+          data.push({ x: index, y: null })
+        }
+      }
+      
+      data.push({
+        x: index,
+        y: av.models[model.id] ?? null,
+      })
+    })
     
     return {
       name: model.name,
@@ -98,15 +116,20 @@ const chartSeries = computed(() => {
   })
 })
 
+// Generate category labels for x-axis
+const xAxisCategories = computed(() => {
+  return props.accountValues.map(av => av.timestamp.getTime())
+})
+
 // Chart options
 const chartOptions = computed(() => {
   
   const allValues = props.accountValues.flatMap(av => 
     Object.values(av.models)
   )
-  // const maxValue = allValues.length > 0 ? Math.max(...allValues) : 15000
-  // const yAxisMax = Math.max(15000, Math.ceil(maxValue / 5000) * 5000)
-  // const yAxisMin = 5000
+  const maxValue = allValues.length > 0 ? Math.max(...allValues) : 15000
+  const yAxisMax = Math.max(15000, Math.ceil(maxValue / 2500) * 2500)
+  const yAxisMin = Math.floor(Math.min(...allValues) / 2500) * 2500
 
   return {
     chart: {
@@ -153,7 +176,9 @@ const chartOptions = computed(() => {
       },
     },
     xaxis: {
-      type: 'datetime',
+      type: 'category',
+      tickAmount: 7,
+      categories: xAxisCategories.value,
       labels: {
         style: {
           colors: '#000000',
@@ -161,7 +186,18 @@ const chartOptions = computed(() => {
           fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
         },
-        format: 'MMM dd HH:mm',
+        formatter: (val: string) => {
+          const date = new Date(parseInt(val))
+          if (isNaN(date.getTime())) return ''
+          
+          return date.toLocaleString('en-US', { 
+            month: 'short', 
+            day: '2-digit', 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+          })
+        },
       },
       axisBorder: {
         show: true,
@@ -174,12 +210,9 @@ const chartOptions = computed(() => {
       },
     },
     yaxis: {
-      // min: yAxisMin,
-      // max: yAxisMax,
-      // tickAmount: Math.ceil((yAxisMax - yAxisMin) / 5000),
-      min: 6000,
-      max: 16000,
-      tickAmount: 5,
+      min: yAxisMin,
+      max: yAxisMax,
+      tickAmount: Math.ceil((yAxisMax - yAxisMin) / 2500),
       labels: {
         style: {
           colors: '#000000',
@@ -236,7 +269,18 @@ const chartOptions = computed(() => {
         fontSize: '11px',
       },
       x: {
-        format: 'MMM dd, yyyy HH:mm',
+        formatter: (val: number, opts: any) => {
+          const timestamp = xAxisCategories.value[val]
+          const date = new Date(timestamp)
+          return date.toLocaleString('en-US', { 
+            month: 'short', 
+            day: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+          })
+        },
       },
       y: {
         formatter: (val: number) => `$${formatNumber(val)}`,
