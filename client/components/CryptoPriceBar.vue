@@ -8,7 +8,7 @@
         
         <!-- Crypto Prices -->
         <div class="flex items-center space-x-4">
-          <!-- <template v-for="(crypto, index) in displayCryptoPrices" :key="crypto.symbol">
+          <template v-for="(crypto, index) in displayCryptoPrices" :key="crypto.symbol">
             <div class="flex items-center space-x-2">
               <img
                 v-if="crypto.icon"
@@ -21,7 +21,7 @@
               <span class="text-xs text-secondary">{{ formatPrice(crypto.price) }}</span>
             </div>
             <div v-if="index < displayCryptoPrices.length - 1" class="h-4 w-px bg-gray-300"></div>
-          </template> -->
+          </template>
         </div>
 
         <!-- Performance Summary -->
@@ -105,26 +105,12 @@ const lowestIcon = computed(() => {
   return getModelIcon(lowest.value.icon)
 })
 
-// Dummy crypto prices for display when no data is available
-const dummyCryptoPrices: CryptoPriceWithIcon[] = [
-  { symbol: 'BTC', name: 'Bitcoin', price: 104577.50, icon: getCoinIcon('BTC') },
-  { symbol: 'ETH', name: 'Ethereum', price: 3505.75, icon: getCoinIcon('ETH') },
-  { symbol: 'SOL', name: 'Solana', price: 158.56, icon: getCoinIcon('SOL') },
-  { symbol: 'BNB', name: 'Binance Coin', price: 952.14, icon: getCoinIcon('BNB') },
-  { symbol: 'DOGE', name: 'Dogecoin', price: 0.1642, icon: getCoinIcon('DOGE') },
-  { symbol: 'XRP', name: 'XRP', price: 2.27, icon: getCoinIcon('XRP') },
-]
-
-// Display crypto prices with icons - use dummy data if no real data
-const displayCryptoPrices = computed<CryptoPriceWithIcon[]>(() => {
-  if (props.cryptoPrices.length > 0) {
-    return props.cryptoPrices.map(crypto => ({
-      ...crypto,
-      icon: getModelIcon(crypto.symbol)
-    }))
-  }
-  return dummyCryptoPrices
-})
+const displayCryptoPrices = computed<CryptoPriceWithIcon[]>(() =>
+  props.cryptoPrices.map(crypto => ({
+    ...crypto,
+    icon: getCoinIcon(crypto.symbol),
+  }))
+)
 
 const formatPrice = (price: number): string => {
   const formatted = formatNumber(price)

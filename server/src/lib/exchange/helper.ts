@@ -1,6 +1,6 @@
-import { db, accounts, positions, orders, accountSnapshots } from '../../config/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { isSupportedSymbol } from '../../config/exchange';
+import { db, accounts, positions, orders, accountSnapshots, marketPrices } from '../../config/database';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
 
 /**
  * Simulation service for paper trading
@@ -123,7 +123,7 @@ export async function createPosition(
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
-    throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT`);
+    throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
 
   const account = await getAccountBalance(accountId);
@@ -140,7 +140,7 @@ export async function createPosition(
   }
 
   // Create new position
-  const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.min(Math.floor(leverage), 25) : 1;
+  const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.max(1, Math.floor(leverage)) : 1;
 
   const [newPosition] = await db
     .insert(positions)
@@ -222,7 +222,7 @@ export async function closePosition(
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
-    throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, DOGEUSDT`);
+    throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
 
   const account = await getAccountBalance(accountId);
@@ -457,4 +457,35 @@ export async function createAccountSnapshot(accountId: string): Promise<void> {
       sharpe_ratio: updatedAccount.sharpe_ratio,
       snapshot_at: new Date(),
     });
+}
+
+// Upsert the latest mark price per symbol so the dashboard has prices without exchange access
+export async function upsertMarketPrices(
+  prices: Array<{ symbol: string; price: number }>
+): Promise<number> {
+  const rows = prices.filter(p => Number.isFinite(p.price) && p.price > 0);
+  if (rows.length === 0) {
+    return 0;
+  }
+
+  await db
+    .insert(marketPrices)
+    .values(
+      rows.map(p => ({
+        symbol: p.symbol,
+        price: p.price.toString(),
+        sort_order: TRADING_SYMBOLS.indexOf(p.symbol),
+        updated_at: new Date(),
+      }))
+    )
+    .onConflictDoUpdate({
+      target: marketPrices.symbol,
+      set: {
+        price: sql`excluded.price`,
+        sort_order: sql`excluded.sort_order`,
+        updated_at: sql`excluded.updated_at`,
+      },
+    });
+
+  return rows.length;
 }

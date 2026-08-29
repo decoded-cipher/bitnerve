@@ -30,9 +30,6 @@ export interface CreateFuturesOrderParams {
   [key: string]: any;
 }
 
-// Trading symbols for perpetual futures
-export type PerpetualFuturesSymbol = 'BTCUSDT' | 'ETHUSDT' | 'SOLUSDT' | 'BNBUSDT' | 'XRPUSDT' | 'DOGEUSDT';
-
 // Exchange identifier for CoinSwitch futures
 export const FUTURES_EXCHANGE = 'EXCHANGE_2';
 

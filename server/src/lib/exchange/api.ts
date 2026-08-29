@@ -6,7 +6,6 @@ import { concatBytes } from '@noble/hashes/utils';
 import type { CandlesParams, BaseApiParams, CreateFuturesOrderParams } from '../../types';
 
 const BASE_URL = process.env.COINSWITCH_BASE_URL;
-const DMS_URL = process.env.COINSWITCH_DMS_URL;
 const SECRET_KEY = process.env.COINSWITCH_SECRET_KEY!;
 const API_KEY = process.env.COINSWITCH_API_KEY!;
 

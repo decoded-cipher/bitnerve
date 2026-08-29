@@ -1,6 +1,7 @@
 import { getMarketData } from '../lib/exchange';
 import { TRADING_SYMBOLS } from '../config/exchange';
 import { formatArray, round } from '../lib/utils';
+import { getInstrument, describeConstraints } from '../lib/exchange/instruments';
 
 type Snapshot = Awaited<ReturnType<typeof getMarketData>>;
 
@@ -125,7 +126,8 @@ export function renderScreen(rows: SymbolScreen[]): string {
   ].join('\n');
 }
 
-export function renderDetail(symbol: string, data: Snapshot): string {
+export async function renderDetail(symbol: string, data: Snapshot): Promise<string> {
+  const instrument = await getInstrument(symbol);
   return [
     `${symbol} — intraday 5m series, oldest to newest`,
     `price ${round(data.currentPrice, 4)}  ema20 ${round(data.currentEma20, 2)}  macd ${round(data.currentMacd, 2)}  rsi7 ${round(data.currentRsi7, 1)}`,
@@ -143,6 +145,8 @@ export function renderDetail(symbol: string, data: Snapshot): string {
     `volume ${round(data.longerTerm.volumeData.currentVolume, 2)} vs average ${round(data.longerTerm.volumeData.averageVolume, 2)}`,
     `macd  : ${formatArray(data.longerTerm.macd, 10, 2)}`,
     `rsi14 : ${formatArray(data.longerTerm.rsi14, 10, 1)}`,
+    '',
+    `exchange constraints: ${describeConstraints(instrument)}`,
   ].join('\n');
 }
 

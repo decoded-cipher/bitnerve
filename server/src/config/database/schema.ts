@@ -80,8 +80,17 @@ export const accountSnapshots = pgTable('account_snapshots', {
   ...timestamps(),
 });
 
+// Latest mark price per symbol, refreshed by the MCP server each cycle
+export const marketPrices = pgTable('market_prices', {
+  symbol: text('symbol').primaryKey(), // Exchange symbol, e.g. 'BTCUSDT'
+  price: numeric('price', { precision: 20, scale: 8 }).notNull(), // Last observed mark price
+  sort_order: integer('sort_order').default(0).notNull(), // Display order, from the backend symbol list
+  updated_at: timestamp('updated_at').defaultNow().notNull(), // When this price was last refreshed
+});
+
 export type Account = typeof accounts.$inferSelect;
 export type Position = typeof positions.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type AgentInvocation = typeof agentInvocations.$inferSelect;
 export type AccountSnapshot = typeof accountSnapshots.$inferSelect;
+export type MarketPrice = typeof marketPrices.$inferSelect;

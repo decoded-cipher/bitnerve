@@ -1,0 +1,107 @@
+{
+  "constraintsSyncedAt": "2026-08-29T05:34:49.178Z",
+  "symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "base": "BTC",
+      "name": "Bitcoin",
+      "constraints": {
+        "minQuantity": 0.001,
+        "quantityStep": 0.001,
+        "quantityPrecision": 3,
+        "pricePrecision": 2,
+        "minLeverage": 1,
+        "maxLeverage": 100,
+        "maxQuantity": 150,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.56
+      }
+    },
+    {
+      "symbol": "ETHUSDT",
+      "base": "ETH",
+      "name": "Ethereum",
+      "constraints": {
+        "minQuantity": 0.01,
+        "quantityStep": 0.01,
+        "quantityPrecision": 2,
+        "pricePrecision": 2,
+        "minLeverage": 1,
+        "maxLeverage": 90,
+        "maxQuantity": 2000,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.6
+      }
+    },
+    {
+      "symbol": "SOLUSDT",
+      "base": "SOL",
+      "name": "Solana",
+      "constraints": {
+        "minQuantity": 0.1,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 3,
+        "minLeverage": 1,
+        "maxLeverage": 86,
+        "maxQuantity": 12000,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.57
+      }
+    },
+    {
+      "symbol": "BNBUSDT",
+      "base": "BNB",
+      "name": "BNB",
+      "constraints": {
+        "minQuantity": 0.02,
+        "quantityStep": 0.01,
+        "quantityPrecision": 2,
+        "pricePrecision": 2,
+        "minLeverage": 1,
+        "maxLeverage": 60,
+        "maxQuantity": 370,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.82
+      }
+    },
+    {
+      "symbol": "XRPUSDT",
+      "base": "XRP",
+      "name": "XRP",
+      "constraints": {
+        "minQuantity": 5.5,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 4,
+        "minLeverage": 1,
+        "maxLeverage": 86,
+        "maxQuantity": 1500000,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.57
+      }
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "base": "DOGE",
+      "name": "Dogecoin",
+      "constraints": {
+        "minQuantity": 89,
+        "quantityStep": 1,
+        "quantityPrecision": 0,
+        "pricePrecision": 5,
+        "minLeverage": 1,
+        "maxLeverage": 57,
+        "maxQuantity": 5991100,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.86
+      }
+    }
+  ]
+}

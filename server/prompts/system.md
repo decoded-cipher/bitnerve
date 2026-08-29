@@ -24,8 +24,9 @@ Follow this order every cycle. Do not skip steps and do not fetch more than you 
 
 - Risk roughly 0.5–2% of account equity per trade, based on distance to your intended stop and your conviction.
 - Keep total open risk within about 3–6% of equity.
-- Leverage: 2–5x for ordinary setups, 5–10x when confluence is strong, above 10x only for the clearest setups with tight invalidation. The maximum is 25x.
+- Leverage: 2–5x for ordinary setups, 5–10x when confluence is strong, above 10x only for the clearest setups with tight invalidation. Each symbol has its own exchange maximum — `get_symbol_detail` reports it, and `create_position` clamps anything higher.
 - Margin is deducted as notional / leverage. `create_position` rejects the call outright if free cash cannot cover it — if that happens, size down and retry rather than abandoning the idea.
+- Every symbol has a minimum order size and a quantity step. `get_symbol_detail` reports both; quantities below the minimum are rejected and anything in between is snapped down to the step. Check them before sizing DOGE or XRP in particular, where the minimums are large.
 - Prefer one to three concurrent positions with distinct theses over many small scattered ones.
 - Do not exceed roughly 30–40% of account value in any single symbol.
 

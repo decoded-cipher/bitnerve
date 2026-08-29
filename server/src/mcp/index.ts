@@ -10,8 +10,10 @@ import {
   getAccountMetrics,
   getOpenPositions,
   markPositionsToMarket,
+  upsertMarketPrices,
 } from '../lib/exchange/helper';
 import { round } from '../lib/utils';
+import { getInstrument, roundQuantity, describeConstraints } from '../lib/exchange/instruments';
 import { describeError } from '../lib/errors';
 import { snapshot, snapshotAll, screenSymbol, renderScreen, renderDetail, livePrices } from './market';
 import {
@@ -104,6 +106,7 @@ server.registerTool(
     const all = await snapshotAll();
     const rows = all.map(({ symbol, data }) => screenSymbol(symbol, data));
     await recordMarketData(rows);
+    await upsertMarketPrices(rows.map(r => ({ symbol: r.symbol, price: r.price })));
     return text(renderScreen(rows));
   }
 );
@@ -121,7 +124,7 @@ server.registerTool(
   },
   async ({ symbol }) => {
     const data = await snapshot(symbol);
-    return text(renderDetail(symbol, data));
+    return text(await renderDetail(symbol, data));
   }
 );
 
@@ -130,37 +133,59 @@ server.registerTool(
   {
     title: 'Open position',
     description:
-      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Margin is deducted as notional / leverage; the call is rejected if free cash cannot cover it. One position per symbol.',
+      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Quantity must meet the exchange minimum and is snapped down to its step size; leverage is capped at the exchange maximum for that symbol. Margin is deducted as notional / leverage and the call is rejected if free cash cannot cover it. One position per symbol. Call get_symbol_detail first to see the constraints.',
     inputSchema: z.object({
       symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
       side: z.enum(['BUY', 'SELL']),
       quantity: z.number().positive(),
-      leverage: z.number().int().min(1).max(25).optional(),
+      leverage: z.number().int().min(1).optional(),
     }),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
   async ({ symbol, side, quantity, leverage }) =>
     record('create_position', { symbol, side, quantity, leverage }, async () => {
       const accountId = await getAccountId();
-      const invocationId = await currentInvocationId();
+      const instrument = await getInstrument(symbol);
+
+      const placeable = roundQuantity(quantity, instrument);
+      if (placeable < instrument.minQuantity || placeable <= 0) {
+        throw new Error(
+          `Quantity ${quantity} is below the exchange minimum for ${symbol} (${instrument.minQuantity}). ${describeConstraints(instrument)}`
+        );
+      }
+      if (instrument.maxQuantity && placeable > instrument.maxQuantity) {
+        throw new Error(
+          `Quantity ${placeable} exceeds the exchange maximum for ${symbol} (${instrument.maxQuantity}).`
+        );
+      }
+
+      const requested = leverage ?? 1;
+      const lev = Math.min(Math.max(requested, instrument.minLeverage), instrument.maxLeverage);
+
+      const invocation = await currentInvocationId();
       const data = await snapshot(symbol);
       const result = await createPosition(
         accountId,
         symbol,
         side,
-        quantity,
+        placeable,
         data.currentPrice,
-        invocationId,
-        leverage ?? 1
+        invocation,
+        lev
       );
 
-      const lev = result.position.leverage;
-      const notional = data.currentPrice * quantity;
+      const filledLev = result.position.leverage;
+      const notional = data.currentPrice * placeable;
+      const notes: string[] = [];
+      if (placeable !== quantity) notes.push(`quantity snapped ${quantity} -> ${placeable} (step ${instrument.quantityStep})`);
+      if (lev !== requested) notes.push(`leverage clamped ${requested}x -> ${lev}x (max ${instrument.maxLeverage}x)`);
+
       return {
         payload: result,
         body: [
-          `FILLED ${side} ${quantity} ${symbol} @ ${round(data.currentPrice, 4)}`,
-          `leverage ${lev}x  notional ${round(notional, 2)}  margin ${round(notional / lev, 2)}`,
+          `FILLED ${side} ${placeable} ${symbol} @ ${round(data.currentPrice, 4)}`,
+          `leverage ${filledLev}x  notional ${round(notional, 2)}  margin ${round(notional / filledLev, 2)}`,
+          ...notes,
           `position ${result.position.id}`,
         ].join('\n'),
       };
