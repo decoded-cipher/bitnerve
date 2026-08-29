@@ -17,7 +17,8 @@
         />
 
         <div class="h-28 p-4 text-center text-xs text-secondary border-t border-mono-border">
-          Data updated every 5 minutes. Last updated at {{ new Date().toLocaleTimeString() }}.
+          <template v-if="lastUpdated">Updated at {{ lastUpdated.toLocaleTimeString() }}. Refreshing every {{ REFRESH_SECONDS }}s.</template>
+          <template v-else>Loading data...</template>
         </div>
       </div>
 
@@ -33,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { useHead, useFetch, computed } from '#imports'
+import { useHead, useFetch, computed, ref, onMounted, onUnmounted } from '#imports'
 import type { CryptoPrice, Model, AccountValue, ModelPerformance, ModelPositions } from '~/types'
 import { formatModelName } from '~/config/model'
 
@@ -75,7 +76,7 @@ const MONO_COLORS = [
 ]
 
 // Fetch accounts (models)
-const { data: accountsData, pending: isAccountsLoading } = await useFetch<Array<{
+const { data: accountsData, pending: isAccountsLoading, refresh: refreshAccounts } = await useFetch<Array<{
   id: string
   model_name: string
   initial_balance: number
@@ -112,7 +113,7 @@ const models = computed<Model[]>(() => {
 })
 
 // Fetch account values
-const { data: accountValuesData, pending: isAccountValuesLoading } = await useFetch<Array<{
+const { data: accountValuesData, pending: isAccountValuesLoading, refresh: refreshAccountValues } = await useFetch<Array<{
   timestamp: string | Date
   models: Record<string, number>
 }>>('/api/account-values')
@@ -125,7 +126,7 @@ const accountValues = computed<AccountValue[]>(() => {
 })
 
 // Fetch positions
-const { data: positionsData, pending: isPositionsLoading } = await useFetch<Array<{
+const { data: positionsData, pending: isPositionsLoading, refresh: refreshPositions } = await useFetch<Array<{
   account_id: string
   total_unrealized_pnl: number
   available_cash: number
@@ -162,13 +163,13 @@ const modelPositions = computed<ModelPositions[]>(() => {
 })
 
 // Fetch crypto prices
-const { data: cryptoPricesData, pending: isPricesLoading } = await useFetch<CryptoPrice[]>('/api/crypto-prices')
+const { data: cryptoPricesData, pending: isPricesLoading, refresh: refreshPrices } = await useFetch<CryptoPrice[]>('/api/crypto-prices')
 const cryptoPrices = computed<CryptoPrice[]>(() => {
   return Array.isArray(cryptoPricesData.value) ? cryptoPricesData.value : []
 })
 
 // Fetch performance
-const { data: performanceData, pending: isPerformanceLoading } = await useFetch<{
+const { data: performanceData, pending: isPerformanceLoading, refresh: refreshPerformance } = await useFetch<{
   highest: {
     model: string
     value: number
@@ -206,5 +207,37 @@ const performance = computed<ModelPerformance>(() => {
     lowest: data.lowest,
   }
 })
-</script>
 
+const REFRESH_SECONDS = 60
+const lastUpdated = ref<Date | null>(null)
+let timer: ReturnType<typeof setInterval> | null = null
+
+const refreshAll = async () => {
+  await Promise.all([
+    refreshAccounts(),
+    refreshAccountValues(),
+    refreshPositions(),
+    refreshPrices(),
+    refreshPerformance(),
+  ])
+  lastUpdated.value = new Date()
+}
+
+// Pause polling while the tab is hidden, and catch up as soon as it is visible again
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') refreshAll()
+}
+
+onMounted(() => {
+  lastUpdated.value = new Date()
+  timer = setInterval(() => {
+    if (document.visibilityState === 'visible') refreshAll()
+  }, REFRESH_SECONDS * 1000)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
+</script>

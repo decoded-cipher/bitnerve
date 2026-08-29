@@ -76,50 +76,44 @@ const modelsWithValues = computed(() => {
   }))
 })
 
-// Prepare chart series
-// This plots TOTAL ACCOUNT VALUE over time:
-// - account_value = current_balance (includes realized PnL) + unrealized PnL from open positions
-// - Includes both realized PnL from closed positions (via total_pnl) and unrealized PnL from open positions
-const chartSeries = computed(() => {
-  // Detect gaps in the data
+// Lay out one x slot per data point, plus an empty slot wherever there is a gap in time.
+// Categories and series are built from the same slot list so they stay the same length.
+const chartLayout = computed(() => {
   const timestamps = props.accountValues.map(av => av.timestamp.getTime())
   const MIN_GAP = 60 * 60 * 1000 // 1 hour threshold
-  
-  return props.models.map(model => {
-    const data: Array<{ x: number; y: number | null }> = []
-    
-    props.accountValues.forEach((av, index) => {
-      // Check if there's a large gap from previous point
-      if (index > 0) {
-        const prevTimestamp = timestamps[index - 1]
-        const currentTimestamp = timestamps[index]
-        const gap = currentTimestamp - prevTimestamp
-        
-        if (gap > MIN_GAP) {
-          // Insert a null point to break the line
-          data.push({ x: index, y: null })
-        }
-      }
-      
-      data.push({
-        x: index,
-        y: av.models[model.id] ?? null,
-      })
-    })
-    
-    return {
-      name: model.name,
-      data: data,
-      color: model.color,
-      strokeDashArray: model.name === 'BTC BUY&HOLD' ? 5 : 0,
+
+  const categories: Array<number | null> = []
+  const sources: Array<number | null> = []
+
+  props.accountValues.forEach((av, index) => {
+    if (index > 0 && timestamps[index] - timestamps[index - 1] > MIN_GAP) {
+      categories.push(null)
+      sources.push(null)
     }
+    categories.push(timestamps[index])
+    sources.push(index)
   })
+
+  return { categories, sources }
+})
+
+// Plots TOTAL ACCOUNT VALUE over time: current_balance (realized PnL included) plus unrealized PnL from open positions
+const chartSeries = computed(() => {
+  const { sources } = chartLayout.value
+
+  return props.models.map(model => ({
+    name: model.name,
+    data: sources.map((source, slot) => ({
+      x: slot,
+      y: source === null ? null : (props.accountValues[source].models[model.id] ?? null),
+    })),
+    color: model.color,
+    strokeDashArray: model.name === 'BTC BUY&HOLD' ? 5 : 0,
+  }))
 })
 
 // Generate category labels for x-axis
-const xAxisCategories = computed(() => {
-  return props.accountValues.map(av => av.timestamp.getTime())
-})
+const xAxisCategories = computed(() => chartLayout.value.categories)
 
 // Chart options
 const chartOptions = computed(() => {
@@ -128,23 +122,16 @@ const chartOptions = computed(() => {
     Object.values(av.models)
   ).filter(v => v != null)
   
-  if (allValues.length === 0) {
-    // Fallback values when no data
-    return {
-      chart: { type: 'line' as const },
-      yaxis: { min: 0, max: 15000 }
-    }
-  }
-  
-  const maxValue = Math.max(...allValues)
-  const minValue = Math.min(...allValues)
+  const hasData = allValues.length > 0
+  const maxValue = hasData ? Math.max(...allValues) : 0
+  const minValue = hasData ? Math.min(...allValues) : 0
   
   // Add 5% padding to top and bottom for better visibility
   const range = maxValue - minValue
   const padding = range > 0 ? range * 0.05 : 50 // Minimum 50 padding if range is tiny
   
-  const yAxisMax = Math.ceil((maxValue + padding) / 100) * 100
-  const yAxisMin = Math.floor((minValue - padding) / 100) * 100
+  const yAxisMax = hasData ? Math.ceil((maxValue + padding) / 100) * 100 : 15000
+  const yAxisMin = hasData ? Math.floor((minValue - padding) / 100) * 100 : 0
   
   // Calculate reasonable tick amount based on range
   const tickAmount = Math.min(10, Math.max(5, Math.ceil(range / 500)))
@@ -289,6 +276,7 @@ const chartOptions = computed(() => {
       x: {
         formatter: (val: number, opts: any) => {
           const timestamp = xAxisCategories.value[val]
+          if (timestamp === null || timestamp === undefined) return ''
           const date = new Date(timestamp)
           return date.toLocaleString('en-US', { 
             month: 'short', 

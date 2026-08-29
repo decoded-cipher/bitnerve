@@ -5,6 +5,8 @@ import { TRADING_PROVIDER, TRADING_MODEL } from '../../config/model';
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+const MIN_SHARPE_TRADES = 2;
+
 function fitNumeric(value: number, precision: number, scale: number): string | null {
   if (!Number.isFinite(value)) return null;
   const max = 10 ** (precision - scale) - 10 ** -scale;
@@ -409,31 +411,16 @@ export async function getAccountMetrics(accountId: string, tx: Executor = db) {
     ? ((accountValue - initialBalance) / initialBalance) * 100 
     : 0;
 
-  // Calculate Sharpe Ratio
+  // Sharpe ratio over per-trade returns, each measured against the starting balance
   let sharpeRatio: number | null = null;
-  if (closedOrders.length > 0 && initialBalance > 0) {
-    try {
-      const returns: number[] = [];
-      let cumulativePnL = 0;
+  if (closedOrders.length >= MIN_SHARPE_TRADES && initialBalance > 0) {
+    const returns = closedOrders.map(order => parseFloat(order.realized_pnl || '0') / initialBalance);
+    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1);
+    const stdDev = Math.sqrt(variance);
 
-      for (const order of closedOrders) {
-        const pnl = parseFloat(order.realized_pnl || '0');
-        cumulativePnL += pnl;
-        const orderReturn = cumulativePnL / initialBalance;
-        returns.push(orderReturn);
-      }
-
-      if (returns.length > 0) {
-        const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-        const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-        const stdDev = Math.sqrt(variance);
-
-        if (stdDev > 1e-9) {
-          sharpeRatio = avgReturn / stdDev;
-        }
-      }
-    } catch (error) {
-      console.error('Error calculating Sharpe Ratio:', error);
+    if (stdDev > 1e-9) {
+      sharpeRatio = avgReturn / stdDev;
     }
   }
 
@@ -455,7 +442,7 @@ export async function getAccountMetrics(accountId: string, tx: Executor = db) {
     accountValue,
     positions: openPositions,
     totalReturnPercent,
-    sharpeRatio: sharpeRatio || 0,
+    sharpeRatio,
     unrealizedPnL,
     reservedMargin,
     initialBalance,
