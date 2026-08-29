@@ -1,6 +1,6 @@
 # BitNerve
 
-AI-powered crypto trading engine for perpetual futures — built for precision, speed, and nerve, running multiple models across accounts and assets in parallel.
+AI-powered crypto trading engine for perpetual futures — built for precision, speed, and nerve, driven by Claude through the Model Context Protocol.
 
 
 ## 🧠 What is BitNerve?
