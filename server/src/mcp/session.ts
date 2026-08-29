@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { db, agentInvocations } from '../config/database';
-import { and, desc, eq, gte } from 'drizzle-orm';
+import { and, desc, eq, gte, ne } from 'drizzle-orm';
 import { getOrCreateAccount, getAccountMetrics, createAccountSnapshot } from '../lib/exchange/helper';
 
 const INITIAL_BALANCE = Number.parseInt(process.env.INITIAL_BALANCE ?? '', 10) || 10000;
@@ -91,6 +91,16 @@ export function currentInvocationId(): Promise<string> {
     })();
   }
   return invocationIdPromise;
+}
+
+export async function previousAnalysis(accountId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ text: agentInvocations.chain_of_thought })
+    .from(agentInvocations)
+    .where(and(eq(agentInvocations.account_id, accountId), ne(agentInvocations.chain_of_thought, '')))
+    .orderBy(desc(agentInvocations.created_at))
+    .limit(1);
+  return row?.text?.trim() || null;
 }
 
 export async function recordMarketData(data: unknown): Promise<void> {

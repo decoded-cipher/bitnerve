@@ -41,13 +41,16 @@ claude -p "<brief>"  →  reasons over it and calls back into the MCP server
 
 The brief carries everything the model needs in a single prompt — account state, a comparison table across every tracked symbol, and the full indicator series for each. There is **no scoring, ranking or bias applied in code**: the screen reports measurements, and the model does the judging. That's deliberate, and it's the main design principle here.
 
-Three tools are exposed:
+Four tools are exposed:
 
 | tool | purpose |
 |---|---|
 | `create_position` | open a long or short, with exchange constraints enforced |
 | `close_position` | close fully or partially at the live mark |
 | `record_analysis` | persist the cycle's reasoning for the dashboard |
+| `record_lesson` | save a durable observation, carried into every future cycle |
+
+The brief also carries the account's recent closed trades with the fee each one paid, the previous cycle's conclusion, and the saved lessons — the model's only memory between otherwise independent cycles.
 
 The `accounts` table is keyed on `(provider, model_name)`, so several models can run side by side with independent balances and histories. Today one does.
 
@@ -97,7 +100,7 @@ claude -p "$(cd server && bun run --silent brief)" \
   --mcp-config .mcp.json \
   --strict-mcp-config \
   --model claude-opus-5 \
-  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis" \
+  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis mcp__bitnerve__record_lesson" \
   --output-format text
 ```
 
@@ -152,7 +155,7 @@ BitNerve was built in a single weekend — but its future will evolve far beyond
 
 ### 🔹 Immediate Goals
 - Expand **multi-model orchestration** — run several agents side-by-side on the same market.
-- Charge **taker fees** in the simulator; they're synced from the exchange and shown to the model, but not yet deducted.
+- Charge **funding** in the simulator; the rate is synced from the exchange and shown to the model, but not yet deducted.
 - Improve **dashboard telemetry** — model performance heatmaps, per-symbol stats, and risk overlays.
 - Integrate **local model execution** via **Ollama** and **LM Studio**.
 

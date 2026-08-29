@@ -8,6 +8,7 @@ import { createPosition, closePosition } from '../lib/exchange/helper';
 import { round } from '../lib/utils';
 import { getInstrument, roundQuantity, describeConstraints } from '../lib/exchange/instruments';
 import { describeError } from '../lib/errors';
+import { addLesson } from '../lib/lessons';
 import { snapshot } from './market';
 import { getAccountId, currentInvocationId, recordAnalysis, appendToolCall } from './session';
 
@@ -148,6 +149,24 @@ server.registerTool(
     record('record_analysis', { action }, async () => {
       await recordAnalysis(reasoning, action === 'flat' ? 'stop' : 'tool-calls');
       return { payload: { action }, body: `Recorded (${action}).` };
+    })
+);
+
+server.registerTool(
+  'record_lesson',
+  {
+    title: 'Record lesson',
+    description:
+      'Save a durable observation that will be shown to you at the start of every future cycle. Use it for things that should change how you trade from now on — a pattern that keeps costing money, a setup that keeps working, a rule you want to hold yourself to. Not for this cycle\'s reasoning, which belongs in record_analysis. Keep each lesson to one specific, actionable sentence. Only the most recent 25 are kept.',
+    inputSchema: z.object({
+      lesson: z.string().min(1).max(400),
+    }),
+  },
+  async ({ lesson }) =>
+    record('record_lesson', { lesson }, async () => {
+      const { kept, dropped } = addLesson(lesson);
+      const note = dropped > 0 ? ` (oldest ${dropped} dropped)` : '';
+      return { payload: { count: kept.length }, body: `Lesson saved. ${kept.length} now carried into every cycle${note}.` };
     })
 );
 

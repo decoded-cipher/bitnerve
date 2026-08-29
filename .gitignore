@@ -9,3 +9,4 @@ node_modules
 *.log
 .cycle.lock
 .cycle.stderr.log
+server/prompts/lessons.md

@@ -1,5 +1,5 @@
 import { db, accounts, positions, orders, accountSnapshots, marketPrices } from '../../config/database';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
 import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
 import { TRADING_PROVIDER, TRADING_MODEL } from '../../config/model';
 import { getInstrument } from './instruments';
@@ -91,6 +91,28 @@ export async function getClosedOrders(accountId: string, tx: Executor = db) {
       )
     )
     .orderBy(desc(orders.created_at));
+}
+
+// Closed round trips, newest first, joined to the position they closed
+export async function getRecentTrades(accountId: string, limit = 10) {
+  return await db
+    .select({
+      symbol: orders.symbol,
+      side: positions.side,
+      leverage: positions.leverage,
+      entryPrice: positions.entry_price,
+      exitPrice: orders.filled_price,
+      quantity: orders.quantity,
+      realized: orders.realized_pnl,
+      metadata: orders.metadata,
+      openedAt: positions.created_at,
+      closedAt: orders.created_at,
+    })
+    .from(orders)
+    .innerJoin(positions, eq(positions.id, orders.position_id))
+    .where(and(eq(orders.account_id, accountId), isNotNull(orders.realized_pnl)))
+    .orderBy(desc(orders.created_at))
+    .limit(limit);
 }
 
 // Refresh open positions against live prices
@@ -430,8 +452,9 @@ export async function getAccountMetrics(accountId: string, tx: Executor = db) {
 
   // Sharpe ratio over per-trade returns
   let sharpeRatio: number | null = null;
-  if (closedOrders.length >= MIN_SHARPE_TRADES && initialBalance > 0) {
-    const returns = closedOrders.map(order => parseFloat(order.realized_pnl || '0') / initialBalance);
+  const realisedOrders = closedOrders.filter(order => order.realized_pnl !== null);
+  if (realisedOrders.length >= MIN_SHARPE_TRADES && initialBalance > 0) {
+    const returns = realisedOrders.map(order => parseFloat(order.realized_pnl || '0') / initialBalance);
     const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
     const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1);
     const stdDev = Math.sqrt(variance);

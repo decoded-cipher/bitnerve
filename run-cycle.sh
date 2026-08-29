@@ -33,7 +33,7 @@ claude -p "$BRIEF" \
   --mcp-config .mcp.json \
   --strict-mcp-config \
   --model claude-opus-5 \
-  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis" \
+  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis mcp__bitnerve__record_lesson" \
   --output-format text >> "$LOG" 2>&1
 
 echo "$(stamp) END (exit $?)" >> "$LOG"
