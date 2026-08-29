@@ -85,7 +85,9 @@ export async function pingApi() {
 // Fetch klines data from CoinSwitch API
 export async function getKlinesData(params: CandlesParams) {
   const response = await authRequest('/trade/api/v2/futures/klines', 'GET', { ...params, exchange: 'EXCHANGE_2' });
-  return response.data;
+  const candles = response.data;
+  if (!Array.isArray(candles)) return candles;
+  return [...candles].sort((a, b) => Number(a.start_time) - Number(b.start_time));
 }
 
 // Fetch futures positions from CoinSwitch API
