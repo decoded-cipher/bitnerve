@@ -57,7 +57,8 @@ server.registerTool(
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true },
   },
-  async () => {
+  async () =>
+    record('get_account_state', {}, async () => {
     const accountId = await getAccountId();
 
     const open = await getOpenPositions(accountId);
@@ -90,8 +91,15 @@ server.registerTool(
       }),
     ];
 
-    return text(lines.join('\n'));
-  }
+    return {
+      payload: {
+        accountValue: round(metrics.accountValue, 2),
+        availableCash: round(metrics.availableCash, 2),
+        openPositions: positions.length,
+      },
+      body: lines.join('\n'),
+    };
+  })
 );
 
 server.registerTool(
@@ -102,13 +110,17 @@ server.registerTool(
     inputSchema: z.object({}),
     annotations: { readOnlyHint: true },
   },
-  async () => {
-    const all = await snapshotAll();
-    const rows = all.map(({ symbol, data }) => screenSymbol(symbol, data));
-    await recordMarketData(rows);
-    await upsertMarketPrices(rows.map(r => ({ symbol: r.symbol, price: r.price })));
-    return text(renderScreen(rows));
-  }
+  async () =>
+    record('screen_symbols', {}, async () => {
+      const all = await snapshotAll();
+      const rows = all.map(({ symbol, data }) => screenSymbol(symbol, data));
+      await recordMarketData(rows);
+      await upsertMarketPrices(rows.map(r => ({ symbol: r.symbol, price: r.price })));
+      return {
+        payload: rows.map(r => ({ symbol: r.symbol, score: r.score, bias: r.bias, trend: r.trend })),
+        body: renderScreen(rows),
+      };
+    })
 );
 
 server.registerTool(
@@ -122,10 +134,11 @@ server.registerTool(
     }),
     annotations: { readOnlyHint: true },
   },
-  async ({ symbol }) => {
-    const data = await snapshot(symbol);
-    return text(await renderDetail(symbol, data));
-  }
+  async ({ symbol }) =>
+    record('get_symbol_detail', { symbol }, async () => {
+      const data = await snapshot(symbol);
+      return { payload: { symbol }, body: await renderDetail(symbol, data) };
+    })
 );
 
 server.registerTool(
@@ -238,10 +251,11 @@ server.registerTool(
       action: z.enum(['opened', 'closed', 'adjusted', 'flat']),
     }),
   },
-  async ({ reasoning, action }) => {
-    await recordAnalysis(reasoning, action === 'flat' ? 'stop' : 'tool-calls');
-    return text(`Recorded (${action}).`);
-  }
+  async ({ reasoning, action }) =>
+    record('record_analysis', { action }, async () => {
+      await recordAnalysis(reasoning, action === 'flat' ? 'stop' : 'tool-calls');
+      return { payload: { action }, body: `Recorded (${action}).` };
+    })
 );
 
 async function shutdown() {

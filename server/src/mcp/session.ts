@@ -1,8 +1,21 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { db, agentInvocations } from '../config/database';
 import { eq } from 'drizzle-orm';
 import { getOrCreateAccount, getAccountMetrics, createAccountSnapshot } from '../lib/exchange/helper';
 
 const INITIAL_BALANCE = Number.parseInt(process.env.INITIAL_BALANCE ?? '', 10) || 10000;
+
+// MCP never sees the conversation, so the cycle prompt comes from the env or the prompt file
+function cyclePrompt(): string {
+  const override = process.env.CYCLE_PROMPT?.trim();
+  if (override) return override;
+  try {
+    return readFileSync(fileURLToPath(new URL('../../prompts/cycle.md', import.meta.url)), 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
 
 let accountIdPromise: Promise<string> | null = null;
 let invocationIdPromise: Promise<string> | null = null;
@@ -29,7 +42,7 @@ export function currentInvocationId(): Promise<string> {
           session_state: { startTime: startedAt, invocationCount: 0 } as any,
           market_data: {} as any,
           metrics: metrics as any,
-          user_prompt: '',
+          user_prompt: cyclePrompt(),
           chain_of_thought: '',
           agent_response: null,
           finish_reason: null,
