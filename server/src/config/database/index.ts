@@ -13,7 +13,19 @@ export function connectionString(env?: string): string {
   return `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}`;
 }
 
-const client = postgres(connectionString());
+function describeTarget(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname}:${parsed.port || '5432'}${parsed.pathname}`;
+  } catch {
+    return 'unparseable connection string';
+  }
+}
+
+const url = connectionString();
+console.error(`[bitnerve-db] ${describeTarget(url)}`);
+
+const client = postgres(url);
 export const db = drizzle(client, { schema });
 
 export * from './schema';
