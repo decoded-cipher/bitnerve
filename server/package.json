@@ -9,6 +9,7 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts",
+    "mcp": "bun run src/mcp/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -20,6 +21,7 @@
     "@ai-sdk/provider": "^2.0.0",
     "@ai-sdk/provider-utils": "^3.0.16",
     "@google/genai": "^1.29.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@noble/ed25519": "^2.3.0",
     "@noble/hashes": "^1.8.0",
     "@openrouter/ai-sdk-provider": "^1.2.0",

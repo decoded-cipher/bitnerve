@@ -98,7 +98,11 @@
                   <span class="font-semibold">{{ key }}:</span> {{ value }}
                 </div>
               </div>
-              <div v-if="decision.result" class="mt-2 pt-2 border-t border-mono-border text-[10.5px]">
+              <div v-if="decision.error" class="mt-2 pt-2 border-t border-mono-border text-[10.5px]">
+                <div class="font-semibold mb-1 text-red-600">Rejected:</div>
+                <pre class="text-red-600 whitespace-pre-wrap">{{ decision.error }}</pre>
+              </div>
+              <div v-else-if="decision.result" class="mt-2 pt-2 border-t border-mono-border text-[10.5px]">
                 <div class="font-semibold mb-1">Result:</div>
                 <pre class="text-secondary whitespace-pre-wrap">{{ JSON.stringify(decision.result, null, 2) }}</pre>
               </div>
@@ -136,6 +140,7 @@ interface TradingDecision {
   toolName: string
   args: Record<string, any>
   result?: any
+  error?: string | null
 }
 
 const props = defineProps<Props>()
@@ -182,8 +187,9 @@ const formattedTradingDecisions = computed<TradingDecision[]>(() => {
   if (Array.isArray(props.message.agent_response)) {
     return props.message.agent_response.map((item: any) => ({
       toolName: item.toolName || item.tool_name || 'Unknown',
-      args: item.args || {},
+      args: item.input || item.args || {},
       result: item.result || null,
+      error: item.error || null,
     }))
   }
   
@@ -191,8 +197,9 @@ const formattedTradingDecisions = computed<TradingDecision[]>(() => {
   if (typeof props.message.agent_response === 'object') {
     return [{
       toolName: props.message.agent_response.toolName || props.message.agent_response.tool_name || 'Unknown',
-      args: props.message.agent_response.args || {},
+      args: props.message.agent_response.input || props.message.agent_response.args || {},
       result: props.message.agent_response.result || null,
+      error: props.message.agent_response.error || null,
     }]
   }
   

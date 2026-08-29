@@ -4,7 +4,7 @@ export interface ErrorInfo {
   status?: string;
 }
 
-// Detect provider rate-limit / quota exhaustion (Gemini RESOURCE_EXHAUSTED, HTTP 429)
+// Detect provider rate-limit / quota exhaustion
 export function isRateLimitError(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
     return false;
@@ -57,7 +57,7 @@ export function isRateLimitError(error: unknown): boolean {
   return false;
 }
 
-// Flatten a provider error for logging, unwrapping the nested { error: {...} } envelope
+// Flatten a provider error for logging
 export function describeError(error: unknown): ErrorInfo {
   if (error && typeof error === 'object') {
     const err = error as { message?: unknown; code?: unknown; status?: unknown; error?: unknown };

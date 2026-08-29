@@ -21,7 +21,7 @@ export async function invokeAgent(
   modelOverride?: string
 ): Promise<{
   text: string;
-  toolCalls?: Array<{ toolName: string; args: any; result: any }>;
+  toolCalls?: Array<{ toolName: string; input: any; result: any; error: string | null }>;
   finishReason: 'stop' | 'tool_calls' | 'length';
 }> {
 
@@ -49,7 +49,7 @@ export async function invokeAgent(
   }
 
   // Generate text with tools
-  const { text, toolCalls, finishReason } = await generateText({
+  const { text, content, toolCalls, toolResults, finishReason } = await generateText({
     model: getLanguageModel(modelOverride),
     system: PROMPT.SYSTEM,
     prompt: userPrompt,
@@ -86,17 +86,25 @@ export async function invokeAgent(
     }
   });
 
-  // Execute any tool calls (if needed - tools are auto-executed in v5)
-  const executedToolCalls = [];
-  if (toolCalls && toolCalls.length > 0) {
-    for (const toolCall of toolCalls) {
-      if ('args' in toolCall && 'result' in toolCall) {
-        executedToolCalls.push({
-          toolName: toolCall.toolName,
-          args: toolCall.args,
-          result: toolCall.result,
-        });
-      }
+  const outputById = new Map((toolResults ?? []).map(r => [r.toolCallId, r.output]));
+  const errorById = new Map(
+    (content ?? [])
+      .filter((part): part is Extract<typeof part, { type: 'tool-error' }> => part.type === 'tool-error')
+      .map(part => [part.toolCallId, part.error])
+  );
+
+  const executedToolCalls = (toolCalls ?? []).map(call => ({
+    toolName: call.toolName,
+    input: call.input,
+    result: outputById.get(call.toolCallId) ?? null,
+    error: errorById.has(call.toolCallId)
+      ? String((errorById.get(call.toolCallId) as any)?.message ?? errorById.get(call.toolCallId))
+      : null,
+  }));
+
+  for (const call of executedToolCalls) {
+    if (call.error) {
+      console.error(`Tool ${call.toolName} rejected:`, call.error, call.input);
     }
   }
 
@@ -105,7 +113,7 @@ export async function invokeAgent(
     await db.update(agentInvocations)
       .set({
         chain_of_thought: text,
-        agent_response: executedToolCalls.length > 0 ? executedToolCalls : null,
+        agent_response: executedToolCalls.length > 0 ? (executedToolCalls as any) : null,
         finish_reason: finishReason as string,
       })
       .where(eq(agentInvocations.id, invocationId));

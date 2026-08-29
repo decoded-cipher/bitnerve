@@ -11,9 +11,15 @@ export function formatToUSD(amount: number): string {
 
 
 // Helper to format array data for display
-export function formatArray(arr: number[], maxDisplay: number = 10): string {
+export function formatArray(arr: number[], maxDisplay: number = 10, precision: number = 2): string {
   const displayArr = arr.length > maxDisplay ? arr.slice(-maxDisplay) : arr;
-  return `[${displayArr.join(', ')}]`;
+  return `[${displayArr.map(v => round(v, precision)).join(', ')}]`;
+}
+
+
+// Round a number to fixed precision
+export function round(value: number, precision: number = 2): number {
+  return Number.isFinite(value) ? Number(value.toFixed(precision)) : 0;
 }
 
 
