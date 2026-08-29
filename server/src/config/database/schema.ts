@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, numeric, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, index, uuid, text, numeric, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 function timestamps() {
   return {
@@ -18,7 +18,9 @@ export const accounts = pgTable('accounts', {
   total_return_percent: numeric('total_return_percent', { precision: 10, scale: 4 }), // Percentage return: ((account_value - initial_balance) / initial_balance) * 100
   sharpe_ratio: numeric('sharpe_ratio', { precision: 10, scale: 6 }), // Risk-adjusted return metric calculated from order returns
   ...timestamps(),
-});
+}, (table) => [
+  index('idx_accounts_created').on(table.created_at),
+]);
 
 export const positions = pgTable('positions', {
   id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the position
@@ -32,7 +34,10 @@ export const positions = pgTable('positions', {
   leverage: integer('leverage').default(1).notNull(), // Leverage multiplier (1 = no leverage)
   is_open: boolean('is_open').default(true).notNull(), // Whether the position is currently open (true) or closed (false)
   ...timestamps(),
-});
+}, (table) => [
+  index('idx_positions_account_open').on(table.account_id, table.is_open),
+  index('idx_positions_open_created').on(table.is_open, table.created_at),
+]);
 
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the order
@@ -51,7 +56,12 @@ export const orders = pgTable('orders', {
   trade_value: numeric('trade_value', { precision: 20, scale: 8 }), // Monetary value of the trade: side === 'BUY' ? price * quantity : -price * quantity
   metadata: jsonb('metadata'), // Additional order metadata stored as JSON
   ...timestamps(),
-});
+}, (table) => [
+  index('idx_orders_account_status').on(table.account_id, table.status),
+  index('idx_orders_status_created').on(table.status, table.created_at),
+  index('idx_orders_position').on(table.position_id),
+  index('idx_orders_invocation').on(table.agent_invocation_id),
+]);
 
 export const agentInvocations = pgTable('agent_invocations', {
   id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the agent invocation
@@ -64,7 +74,10 @@ export const agentInvocations = pgTable('agent_invocations', {
   agent_response: jsonb('agent_response'), // Agent's response including tool calls and decisions (null if invocation failed)
   finish_reason: text('finish_reason'), // Reason for completion: 'stop', 'length', 'tool_calls', 'error', etc.
   ...timestamps(),
-});
+}, (table) => [
+  index('idx_invocations_account_created').on(table.account_id, table.created_at),
+  index('idx_invocations_created').on(table.created_at),
+]);
 
 // Historical snapshots of account values for time-series analysis
 export const accountSnapshots = pgTable('account_snapshots', {
@@ -78,9 +91,12 @@ export const accountSnapshots = pgTable('account_snapshots', {
   sharpe_ratio: numeric('sharpe_ratio', { precision: 10, scale: 6 }), // Sharpe ratio at snapshot time
   snapshot_at: timestamp('snapshot_at').defaultNow().notNull(), // Timestamp when this snapshot was taken
   ...timestamps(),
-});
+}, (table) => [
+  index('idx_snapshots_account_time').on(table.account_id, table.snapshot_at),
+  index('idx_snapshots_time').on(table.snapshot_at),
+]);
 
-// Latest mark price per symbol, refreshed by the MCP server each cycle
+// Latest mark price per symbol
 export const marketPrices = pgTable('market_prices', {
   symbol: text('symbol').primaryKey(), // Exchange symbol, e.g. 'BTCUSDT'
   price: numeric('price', { precision: 20, scale: 8 }).notNull(), // Last observed mark price

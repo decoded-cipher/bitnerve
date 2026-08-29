@@ -80,7 +80,6 @@ export async function appendToolCall(entry: {
     .where(eq(agentInvocations.id, id));
 }
 
-// One MCP process serves one cycle, so this writes at most one equity point per cycle
 export function snapshotOnce(): Promise<void> {
   if (!snapshotPromise) {
     snapshotPromise = getAccountId().then(createAccountSnapshot);

@@ -16,8 +16,6 @@ export interface Instrument {
   maintMarginRate: number;
 }
 
-// Values synced into symbols.json by `bun run symbols:sync`, used when the
-// exchange catalogue is unreachable
 function fallbackFor(symbol: string): Instrument {
   const entry = getSymbolEntry(symbol);
   return { symbol: symbol.toUpperCase(), ...(entry?.constraints ?? {
@@ -79,12 +77,12 @@ export async function getInstrument(symbol: string): Promise<Instrument> {
     const found = (await loadInstruments()).get(symbol.toUpperCase());
     if (found) return found;
   } catch {
-    // Fall back to the synced snapshot rather than blocking a trade on metadata
+    // ignore and fall back
   }
   return fallbackFor(symbol);
 }
 
-// Snap a quantity down to the instrument's step size so it is actually placeable
+// Snap a quantity down to the instrument's step size
 export function roundQuantity(quantity: number, instrument: Instrument): number {
   const step = instrument.quantityStep > 0 ? instrument.quantityStep : undefined;
   const snapped = step ? Math.floor(quantity / step) * step : quantity;

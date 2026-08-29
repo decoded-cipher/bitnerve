@@ -2,6 +2,15 @@ import { db, accounts, positions, orders, accountSnapshots, marketPrices } from 
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
 
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function fitNumeric(value: number, precision: number, scale: number): string | null {
+  if (!Number.isFinite(value)) return null;
+  const max = 10 ** (precision - scale) - 10 ** -scale;
+  const clamped = Math.min(Math.max(value, -max), max);
+  return clamped.toFixed(scale);
+}
+
 /**
  * Simulation service for paper trading
  * Simulates trading operations without real money
@@ -35,8 +44,8 @@ export async function getOrCreateAccount(initialBalance: number = 10000) {
 }
 
 // Get account details
-export async function getAccountBalance(accountId: string) {
-  const [account] = await db
+export async function getAccountBalance(accountId: string, tx: Executor = db) {
+  const [account] = await tx
     .select()
     .from(accounts)
     .where(eq(accounts.id, accountId))
@@ -46,8 +55,8 @@ export async function getAccountBalance(accountId: string) {
 }
 
 // Get open positions for an account
-export async function getOpenPositions(accountId: string) {
-  return await db
+export async function getOpenPositions(accountId: string, tx: Executor = db) {
+  return await tx
     .select()
     .from(positions)
     .where(
@@ -60,8 +69,8 @@ export async function getOpenPositions(accountId: string) {
 }
 
 // Get closed orders for an account
-export async function getClosedOrders(accountId: string) {
-  return await db
+export async function getClosedOrders(accountId: string, tx: Executor = db) {
+  return await tx
     .select()
     .from(orders)
     .where(
@@ -73,7 +82,7 @@ export async function getClosedOrders(accountId: string) {
     .orderBy(desc(orders.created_at));
 }
 
-// Refresh every open position against live prices, then recompute account metrics once
+// Refresh open positions against live prices
 export async function markPositionsToMarket(
   accountId: string,
   prices: Map<string, number>
@@ -126,23 +135,28 @@ export async function createPosition(
     throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
 
-  const account = await getAccountBalance(accountId);
+  return db.transaction(async (tx) => {
+  const [account] = await tx
+    .select()
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1)
+    .for('update');
   if (!account) {
     throw new Error('Account not found');
   }
 
   // Check if position already exists for this symbol
-  const openPositions = await getOpenPositions(accountId);
+  const openPositions = await getOpenPositions(accountId, tx);
   const existingPosition = openPositions.find(p => p.symbol === symbol);
   
   if (existingPosition) {
     throw new Error(`Position already exists for ${symbol}. Use updatePosition instead.`);
   }
 
-  // Create new position
   const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.max(1, Math.floor(leverage)) : 1;
 
-  const [newPosition] = await db
+  const [newPosition] = await tx
     .insert(positions)
     .values({
       account_id: accountId,
@@ -173,7 +187,7 @@ export async function createPosition(
     throw new Error('Insufficient balance to satisfy margin requirement for this position');
   }
 
-  await db
+  await tx
     .update(accounts)
     .set({
       current_balance: newBalance.toString(),
@@ -182,7 +196,7 @@ export async function createPosition(
     .where(eq(accounts.id, accountId));
 
   // Create order record
-  const [order] = await db
+  const [order] = await tx
     .insert(orders)
     .values({
       account_id: accountId,
@@ -204,12 +218,13 @@ export async function createPosition(
     .returning();
 
   // Update account metrics after position creation
-  await getAccountMetrics(accountId);
+  await getAccountMetrics(accountId, tx);
 
   return {
     position: newPosition,
     order,
   };
+  });
 }
 
 // Close an existing position
@@ -225,13 +240,19 @@ export async function closePosition(
     throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
 
-  const account = await getAccountBalance(accountId);
+  return db.transaction(async (tx) => {
+  const [account] = await tx
+    .select()
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1)
+    .for('update');
   if (!account) {
     throw new Error('Account not found');
   }
 
   // Find existing position
-  const openPositions = await getOpenPositions(accountId);
+  const openPositions = await getOpenPositions(accountId, tx);
   const existingPosition = openPositions.find(p => p.symbol === symbol);
   
   if (!existingPosition) {
@@ -246,7 +267,7 @@ export async function closePosition(
     throw new Error('A positive exit price is required to close a position');
   }
 
-  // Calculate realized PnL at the live exit price
+  // Calculate realized PnL
   const entryPrice = parseFloat(existingPosition.entry_price);
   const currentPrice = exitPrice;
   const positionLeverage = existingPosition.leverage || 1;
@@ -266,7 +287,7 @@ export async function closePosition(
         ? (currentPrice - entryPrice) * remainingQuantity
         : (entryPrice - currentPrice) * remainingQuantity;
 
-    await db
+    await tx
       .update(positions)
       .set({
         quantity: remainingQuantity.toString(),
@@ -277,7 +298,7 @@ export async function closePosition(
       .where(eq(positions.id, existingPosition.id));
   } else {
     // Fully close position
-    await db
+    await tx
       .update(positions)
       .set({
         quantity: '0',
@@ -301,7 +322,7 @@ export async function closePosition(
   const newBalance = currentBalance + marginRelease + realizedPnL;
   const newTotalPnL = totalPnL + realizedPnL;
 
-  await db
+  await tx
     .update(accounts)
     .set({
       current_balance: newBalance.toString(),
@@ -311,7 +332,7 @@ export async function closePosition(
     .where(eq(accounts.id, accountId));
 
   // Create order record
-  const [order] = await db
+  const [order] = await tx
     .insert(orders)
     .values({
       account_id: accountId,
@@ -335,20 +356,21 @@ export async function closePosition(
     .returning();
 
   // Update account metrics after position closure
-  await getAccountMetrics(accountId);
+  await getAccountMetrics(accountId, tx);
 
   return {
     realizedPnL,
     closedQuantity: closingQuantity,
     order,
   };
+  });
 }
 
 // Get account metrics for agent and update database
-export async function getAccountMetrics(accountId: string) {
-  const account = await getAccountBalance(accountId);
-  const openPositions = await getOpenPositions(accountId);
-  const closedOrders = await getClosedOrders(accountId);
+export async function getAccountMetrics(accountId: string, tx: Executor = db) {
+  const account = await getAccountBalance(accountId, tx);
+  const openPositions = await getOpenPositions(accountId, tx);
+  const closedOrders = await getClosedOrders(accountId, tx);
 
   const initialBalance = parseFloat(account.initial_balance);
   const currentBalance = parseFloat(account.current_balance);
@@ -398,7 +420,7 @@ export async function getAccountMetrics(accountId: string) {
         const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
         const stdDev = Math.sqrt(variance);
 
-        if (stdDev !== 0) {
+        if (stdDev > 1e-9) {
           sharpeRatio = avgReturn / stdDev;
         }
       }
@@ -408,13 +430,13 @@ export async function getAccountMetrics(accountId: string) {
   }
 
   // Update account with calculated metrics
-  await db
+  await tx
     .update(accounts)
     .set({
-      account_value: accountValue.toString(),
-      crypto_value: cryptoValue.toString(),
-      total_return_percent: totalReturnPercent.toString(),
-      sharpe_ratio: sharpeRatio !== null ? sharpeRatio.toString() : null,
+      account_value: fitNumeric(accountValue, 20, 8),
+      crypto_value: fitNumeric(cryptoValue, 20, 8),
+      total_return_percent: fitNumeric(totalReturnPercent, 10, 4),
+      sharpe_ratio: sharpeRatio !== null ? fitNumeric(sharpeRatio, 10, 6) : null,
       updated_at: new Date(),
     })
     .where(eq(accounts.id, accountId));
@@ -459,7 +481,7 @@ export async function createAccountSnapshot(accountId: string): Promise<void> {
     });
 }
 
-// Upsert the latest mark price per symbol so the dashboard has prices without exchange access
+// Upsert the latest mark price per symbol
 export async function upsertMarketPrices(
   prices: Array<{ symbol: string; price: number }>
 ): Promise<number> {
