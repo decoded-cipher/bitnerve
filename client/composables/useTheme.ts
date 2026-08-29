@@ -1,49 +1,29 @@
 export const useTheme = () => {
-  const isDark = ref(false)
+  const cookie = useCookie<'light' | 'dark' | undefined>('theme', {
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365,
+  })
 
-  const updateTheme = () => {
-    if (process.client) {
-      if (isDark.value) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    }
-  }
+  const isDark = useState('theme-dark', () => cookie.value === 'dark')
 
   const initTheme = () => {
-    if (process.client) {
-      const savedTheme = localStorage.getItem('theme')
-      if (savedTheme) {
-        isDark.value = savedTheme === 'dark'
-      } else {
-        // Check system preference if no saved theme
-        // const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        // isDark.value = prefersDark
-        
-        isDark.value = false
+    if (!import.meta.client) return
+    if (!cookie.value) {
+      const saved = localStorage.getItem('theme')
+      if (saved === 'dark' || saved === 'light') {
+        isDark.value = saved === 'dark'
+        cookie.value = saved
       }
-      updateTheme()
     }
   }
 
   const toggleTheme = () => {
     isDark.value = !isDark.value
-    if (process.client) {
-      localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-      updateTheme()
-    }
+    cookie.value = isDark.value ? 'dark' : 'light'
+    if (import.meta.client) localStorage.setItem('theme', cookie.value)
   }
 
-  // Initialize theme on mount
-  onMounted(() => {
-    initTheme()
-  })
-
-  // Watch for changes to update DOM
-  watch(isDark, () => {
-    updateTheme()
-  })
+  onMounted(initTheme)
 
   return {
     isDark: readonly(isDark),
@@ -51,4 +31,3 @@ export const useTheme = () => {
     initTheme,
   }
 }
-

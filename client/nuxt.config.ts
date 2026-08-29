@@ -24,7 +24,6 @@ export default defineNuxtConfig({
         },
         { name: "author", content: "Arjun Krishna" },
         { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
-        { name: "theme-color", content: "#0a0a0a" },
 
         // Open Graph / Social Media Meta Tags
         { property: "og:type", content: "website" },

@@ -64,16 +64,12 @@ useHead({
   ],
 })
 
-// Monochrome color palette - different shades of gray/black
-const MONO_COLORS = [
-  '#0a0a0a', // Black
-  '#404040', // Dark gray
-  '#737373', // Medium gray
-  '#a3a3a3', // Light gray
-  '#525252', // Darker medium
-  '#171717', // Very dark gray
-  '#d4d4d4', // Lighter gray
-]
+const { isDark } = useTheme()
+
+const LIGHT_SERIES = ['#0a0a0a', '#404040', '#737373', '#a3a3a3', '#525252', '#171717', '#d4d4d4']
+const DARK_SERIES = ['#f5f5f5', '#c9c9c9', '#9e9e9e', '#7a7a7a', '#e0e0e0', '#b3b3b3', '#8a8a8a']
+
+const seriesColors = computed(() => (isDark.value ? DARK_SERIES : LIGHT_SERIES))
 
 // Fetch accounts (models)
 const { data: accountsData, pending: isAccountsLoading, refresh: refreshAccounts } = await useFetch<Array<{
@@ -90,9 +86,9 @@ const accounts = computed(() => Array.isArray(accountsData.value) ? accountsData
 // Function to get model color and icon based on model name
 const getModelStyle = (modelName: string, index: number) => {
   // Use monochrome colors - assign different shades based on index
-  const colorIndex = index % MONO_COLORS.length
+  const palette = seriesColors.value
   return { 
-    color: MONO_COLORS[colorIndex], 
+    color: palette[index % palette.length], 
     icon: 'mono' // Simple icon identifier
   }
 }

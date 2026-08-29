@@ -13,6 +13,12 @@
     --mono-text-muted: #a3a3a3;
     --mono-accent: #171717;
     --mono-hover: #f5f5f5;
+    --mono-divider: #e5e5e5;
+    --mono-scroll: #d4d4d4;
+    --mono-up: #15803d;
+    --mono-down: #b91c1c;
+    --icon-chip: transparent;
+    color-scheme: light;
   }
 
   .dark {
@@ -25,6 +31,12 @@
     --mono-text-muted: #6a6a6a;
     --mono-accent: #e5e5e5;
     --mono-hover: #2a2d2e;
+    --mono-divider: #3e3e3e;
+    --mono-scroll: #4a4a4a;
+    --mono-up: #4ade80;
+    --mono-down: #f87171;
+    --icon-chip: #f5f5f5;
+    color-scheme: dark;
   }
 
   * {
@@ -65,6 +77,10 @@
   
   .text-secondary {
     @apply text-mono-text-secondary;
+  }
+
+  .icon-chip {
+    background-color: var(--icon-chip);
   }
 }
 

@@ -16,7 +16,7 @@
             BitNerve
           </NuxtLink>
           <div class="flex items-baseline gap-2">
-            <span class="text-mono-secondary text-[10px] font-semibold leading-none">AI-Powered Crypto Trading</span>
+            <span class="text-mono-text-secondary text-[10px] font-semibold leading-none">AI-Powered Crypto Trading</span>
           </div>
         </div>
       </div>

@@ -21,6 +21,9 @@ module.exports = {
         'mono-text-muted': 'var(--mono-text-muted)',
         'mono-accent': 'var(--mono-accent)',
         'mono-hover': 'var(--mono-hover)',
+        'mono-divider': 'var(--mono-divider)',
+        'mono-up': 'var(--mono-up)',
+        'mono-down': 'var(--mono-down)',
         // Legacy support (will be phased out)
         'arena-dark': '#1a1a1a',
         'arena-darker': '#0f0f0f',

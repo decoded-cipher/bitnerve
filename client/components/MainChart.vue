@@ -42,8 +42,13 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { isDark } = useTheme()
 const chartContainer = ref<HTMLElement | null>(null)
 const containerHeight = ref(600)
+
+const palette = computed(() => isDark.value
+  ? { label: '#cccccc', axis: '#3e3e3e', grid: '#2f2f2f', mode: 'dark' as const }
+  : { label: '#0a0a0a', axis: '#000000', grid: '#e5e5e5', mode: 'light' as const })
 
 // Calculate chart height based on container
 const updateChartHeight = () => {
@@ -160,6 +165,7 @@ const yAxisScale = computed(() => {
 // Chart options
 const chartOptions = computed(() => {
   const { min: yAxisMin, max: yAxisMax, tickAmount, decimals } = yAxisScale.value
+  const { label, axis, grid, mode } = palette.value
 
   return {
     chart: {
@@ -188,7 +194,7 @@ const chartOptions = computed(() => {
       enabled: false,
     },
     grid: {
-      borderColor: '#e5e5e5',
+      borderColor: grid,
       strokeDashArray: 0,
       xaxis: {
         lines: {
@@ -211,7 +217,7 @@ const chartOptions = computed(() => {
       categories: xAxisCategories.value,
       labels: {
         style: {
-          colors: '#000000',
+          colors: label,
           fontSize: '10px',
           fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
@@ -231,12 +237,12 @@ const chartOptions = computed(() => {
       },
       axisBorder: {
         show: true,
-        color: '#000000'
+        color: axis
       },
       axisTicks: {
         show: true,
         borderType: 'solid',
-        color: '#000000'
+        color: axis
       },
     },
     yaxis: {
@@ -245,7 +251,7 @@ const chartOptions = computed(() => {
       tickAmount: tickAmount,
       labels: {
         style: {
-          colors: '#000000',
+          colors: label,
           fontSize: '10px',
           fontWeight: 600,
           fontFamily: 'Space Mono, monospace',
@@ -259,12 +265,12 @@ const chartOptions = computed(() => {
       },
       axisBorder: {
         show: true,
-        color: '#000000'
+        color: axis
       },
       axisTicks: {
         show: true,
         borderType: 'solid',
-        color: '#000000'
+        color: axis
       },
     },
     legend: {
@@ -274,6 +280,9 @@ const chartOptions = computed(() => {
       fontSize: '10px',
       fontFamily: 'Space Mono, monospace',
       fontWeight: 400,
+      labels: {
+        colors: label,
+      },
       formatter: (seriesName: string, opts: any) => {
         const model = props.models.find(m => m.name === seriesName)
         if (!model) return seriesName
@@ -293,7 +302,7 @@ const chartOptions = computed(() => {
       offsetY: 0,
     },
     tooltip: {
-      theme: 'light',
+      theme: mode,
       style: {
         fontFamily: 'Space Mono, monospace',
         fontSize: '11px',
@@ -318,7 +327,7 @@ const chartOptions = computed(() => {
       },
     },
     theme: {
-      mode: 'light' as const,
+      mode,
     },
     // annotations: {
     //   points: [],

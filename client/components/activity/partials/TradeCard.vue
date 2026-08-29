@@ -9,7 +9,7 @@
             v-if="modelIcon"
             :src="modelIcon"
             :alt="trade.model_name"
-            class="w-4 h-4 object-contain rounded-full border border-mono-secondary p-0.1"
+            class="w-4 h-4 object-contain rounded-full border border-mono-divider p-0.1"
             @error="handleImageError"
           /> -->
           <span class="text-mono-text">
@@ -33,7 +33,7 @@
       </div>
 
       <!-- Trade Details -->
-      <div class="flex flex-col text-mono-text-secondary p-2 text-[10.5px] bg-mono-surface rounded border border-mono-surface-hover">
+      <div class="flex flex-col text-mono-text-secondary p-2 text-[10.5px] bg-mono-surface rounded border border-mono-divider">
         <div
           v-for="detail in tradeDetails"
           :key="detail.label"
@@ -46,7 +46,7 @@
 
       <!-- Net P&L -->
       <div class="flex items-center font-bold text-sm gap-1">
-        <span class="text-mono-text-primary">NET P&L:</span>
+        <span class="text-mono-text">NET P&L:</span>
         <span :class="[pnlColor]">
           {{ formattedPnl }}
         </span>
@@ -106,10 +106,10 @@ const modelIcon = computed(() => getModelIcon(props.trade.model_name))
 const coinIcon = computed(() => getCoinIcon(props.trade.coin))
 const tradeType = computed(() => props.trade.trade_type.toLowerCase())
 const tradeTypeColor = computed(() => 
-  tradeType.value === 'long trade' ? 'text-green-600' : 'text-red-600'
+  tradeType.value === 'long trade' ? 'text-mono-up' : 'text-mono-down'
 )
 const pnlColor = computed(() => 
-  props.trade.net_pnl >= 0 ? 'text-green-600' : 'text-red-600'
+  props.trade.net_pnl >= 0 ? 'text-mono-up' : 'text-mono-down'
 )
 
 const formattedDate = computed(() => {

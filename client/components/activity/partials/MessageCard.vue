@@ -10,7 +10,7 @@
         v-if="modelIcon"
         :src="modelIcon"
         :alt="message.model_name"
-        class="w-6 h-6 object-contain rounded-full border border-gray-300 p-0.5"
+        class="w-6 h-6 object-contain rounded-full border border-mono-divider p-0.5 icon-chip"
         @error="handleImageError"
       />
       <span class="font-bold text-xs text-primary uppercase">{{ message.model_name }}</span>
@@ -24,7 +24,7 @@
 
     <!-- Date - absolute bottom left -->
     <div class="absolute bottom-2 left-4">
-      <span class="text-[10px] text-mono-text-primary">
+      <span class="text-[10px] text-mono-text">
         {{ new Date(message.created_at).toLocaleString() }}
       </span>
     </div>
@@ -90,7 +90,7 @@
             <div
               v-for="(decision, index) in formattedTradingDecisions"
               :key="index"
-              class="p-2 bg-mono-surface rounded border border-mono-surface-hover"
+              class="p-2 bg-mono-surface rounded border border-mono-divider"
             >
               <div class="font-bold mb-1">{{ decision.toolName }}</div>
               <div class="text-secondary text-[10.5px]">
@@ -99,8 +99,8 @@
                 </div>
               </div>
               <div v-if="decision.error" class="mt-2 pt-2 border-t border-mono-border text-[10.5px]">
-                <div class="font-semibold mb-1 text-red-600">Rejected:</div>
-                <pre class="text-red-600 whitespace-pre-wrap">{{ decision.error }}</pre>
+                <div class="font-semibold mb-1 text-mono-down">Rejected:</div>
+                <pre class="text-mono-down whitespace-pre-wrap">{{ decision.error }}</pre>
               </div>
               <div v-else-if="decision.result" class="mt-2 pt-2 border-t border-mono-border text-[10.5px]">
                 <div class="font-semibold mb-1">Result:</div>

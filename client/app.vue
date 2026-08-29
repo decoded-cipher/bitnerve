@@ -5,7 +5,14 @@
 </template>
 
 <script setup lang="ts">
-// Theme initialization is handled by useTheme composable
-// No need to duplicate initialization here
-</script>
+const { isDark } = useTheme()
 
+useHead({
+  htmlAttrs: {
+    class: computed(() => (isDark.value ? 'dark' : '')),
+  },
+  meta: [
+    { name: 'theme-color', content: computed(() => (isDark.value ? '#1e1e1e' : '#ffffff')) },
+  ],
+})
+</script>
