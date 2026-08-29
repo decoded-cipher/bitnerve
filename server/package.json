@@ -1,6 +1,6 @@
 {
   "name": "bitnerve-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "MCP server exposing BitNerve trading tools",
   "license": "MIT",
   "author": "Arjun Krishna",

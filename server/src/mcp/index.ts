@@ -32,14 +32,14 @@ async function record<T>(
   }
 }
 
-const server = new McpServer({ name: 'bitnerve', version: '1.0.0' });
+const server = new McpServer({ name: 'bitnerve', version: '2.0.0' });
 
 server.registerTool(
   'create_position',
   {
     title: 'Open position',
     description:
-      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Quantity must meet the exchange minimum and is snapped down to its step size; leverage is capped at the exchange maximum for that symbol. Margin is deducted as notional / leverage and the call is rejected if free cash cannot cover it. One position per symbol. Call get_symbol_detail first to see the constraints.',
+      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Quantity must meet the exchange minimum and is snapped down to its step size; leverage is capped at the exchange maximum for that symbol. Margin is deducted as notional / leverage and the call is rejected if free cash cannot cover it. One position per symbol.',
     inputSchema: z.object({
       symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
       side: z.enum(['BUY', 'SELL']),
