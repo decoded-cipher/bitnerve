@@ -73,42 +73,40 @@ export async function getClosedOrders(accountId: string) {
     .orderBy(desc(orders.created_at));
 }
 
-// Update position's unrealized PnL based on current price
-export async function updatePositionPnL(positionId: string, currentPrice: number) {
-  const [position] = await db
-    .select()
-    .from(positions)
-    .where(eq(positions.id, positionId))
-    .limit(1);
+// Refresh every open position against live prices, then recompute account metrics once
+export async function markPositionsToMarket(
+  accountId: string,
+  prices: Map<string, number>
+): Promise<number> {
+  const openPositions = await getOpenPositions(accountId);
+  let updated = 0;
 
-  if (!position) {
-    throw new Error('Position not found');
+  for (const position of openPositions) {
+    const price = prices.get(position.symbol);
+    if (price === undefined || !Number.isFinite(price) || price <= 0) {
+      continue;
+    }
+
+    const entryPrice = parseFloat(position.entry_price);
+    const quantity = parseFloat(position.quantity);
+    const direction = position.side === 'SELL' ? -1 : 1;
+    const unrealizedPnL = (price - entryPrice) * quantity * direction;
+
+    await db
+      .update(positions)
+      .set({
+        current_price: price.toString(),
+        unrealized_pnl: unrealizedPnL.toString(),
+        updated_at: new Date(),
+      })
+      .where(eq(positions.id, position.id));
+
+    updated++;
   }
 
-  const entryPrice = parseFloat(position.entry_price);
-  const quantity = parseFloat(position.quantity);
-  const side = position.side;
-  
-  // Calculate unrealized PnL
-  let unrealizedPnL = 0;
-  if (side === 'BUY') {
-    unrealizedPnL = (currentPrice - entryPrice) * quantity;
-  } else if (side === 'SELL') {
-    unrealizedPnL = (entryPrice - currentPrice) * quantity;
+  if (updated > 0) {
+    await getAccountMetrics(accountId);
   }
-
-  const [updated] = await db
-    .update(positions)
-    .set({
-      current_price: currentPrice.toString(),
-      unrealized_pnl: unrealizedPnL.toString(),
-      updated_at: new Date(),
-    })
-    .where(eq(positions.id, positionId))
-    .returning();
-
-  // Update account metrics after position PnL update
-  await getAccountMetrics(updated.account_id);
 
   return updated;
 }
@@ -218,6 +216,7 @@ export async function createPosition(
 export async function closePosition(
   accountId: string,
   symbol: string,
+  exitPrice: number,
   quantity?: number, // If not provided, close entire position
   agentInvocationId?: string
 ) {
@@ -243,9 +242,13 @@ export async function closePosition(
   const closingQuantity = quantity ? Math.min(quantity, existingQuantity) : existingQuantity;
   const remainingQuantity = existingQuantity - closingQuantity;
 
-  // Calculate realized PnL
+  if (!Number.isFinite(exitPrice) || exitPrice <= 0) {
+    throw new Error('A positive exit price is required to close a position');
+  }
+
+  // Calculate realized PnL at the live exit price
   const entryPrice = parseFloat(existingPosition.entry_price);
-  const currentPrice = parseFloat(existingPosition.current_price);
+  const currentPrice = exitPrice;
   const positionLeverage = existingPosition.leverage || 1;
   
   let realizedPnL = 0;

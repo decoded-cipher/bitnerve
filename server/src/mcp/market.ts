@@ -145,3 +145,10 @@ export function renderDetail(symbol: string, data: Snapshot): string {
     `rsi14 : ${formatArray(data.longerTerm.rsi14, 10, 1)}`,
   ].join('\n');
 }
+
+export async function livePrices(symbols: string[]): Promise<Map<string, number>> {
+  const entries = await Promise.all(
+    symbols.map(async symbol => [symbol, (await snapshot(symbol)).currentPrice] as const)
+  );
+  return new Map(entries.filter(([, price]) => Number.isFinite(price) && price > 0));
+}

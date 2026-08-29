@@ -9,16 +9,18 @@ import {
   closePosition,
   getAccountMetrics,
   getOpenPositions,
+  markPositionsToMarket,
 } from '../lib/exchange/helper';
 import { round } from '../lib/utils';
 import { describeError } from '../lib/errors';
-import { snapshot, snapshotAll, screenSymbol, renderScreen, renderDetail } from './market';
+import { snapshot, snapshotAll, screenSymbol, renderScreen, renderDetail, livePrices } from './market';
 import {
   getAccountId,
   currentInvocationId,
   recordMarketData,
   recordAnalysis,
   appendToolCall,
+  snapshotOnce,
 } from './session';
 
 const log = (...args: unknown[]) => console.error('[bitnerve-mcp]', ...args);
@@ -55,6 +57,15 @@ server.registerTool(
   },
   async () => {
     const accountId = await getAccountId();
+
+    const open = await getOpenPositions(accountId);
+    if (open.length > 0) {
+      const symbols = [...new Set(open.map(p => p.symbol))];
+      const marked = await markPositionsToMarket(accountId, await livePrices(symbols));
+      log(`marked ${marked}/${open.length} positions to market`);
+    }
+    await snapshotOnce();
+
     const metrics = await getAccountMetrics(accountId);
     const positions = await getOpenPositions(accountId);
 
@@ -172,7 +183,14 @@ server.registerTool(
     record('close_position', { symbol, quantity }, async () => {
       const accountId = await getAccountId();
       const invocationId = await currentInvocationId();
-      const result = await closePosition(accountId, symbol, quantity, invocationId);
+      const data = await snapshot(symbol);
+      const result = await closePosition(
+        accountId,
+        symbol,
+        data.currentPrice,
+        quantity,
+        invocationId
+      );
 
       return {
         payload: result,

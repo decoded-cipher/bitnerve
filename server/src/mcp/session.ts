@@ -1,11 +1,12 @@
 import { db, agentInvocations } from '../config/database';
 import { eq } from 'drizzle-orm';
-import { getOrCreateAccount, getAccountMetrics } from '../lib/exchange/helper';
+import { getOrCreateAccount, getAccountMetrics, createAccountSnapshot } from '../lib/exchange/helper';
 
 const INITIAL_BALANCE = Number.parseInt(process.env.INITIAL_BALANCE ?? '', 10) || 10000;
 
 let accountIdPromise: Promise<string> | null = null;
 let invocationIdPromise: Promise<string> | null = null;
+let snapshotPromise: Promise<void> | null = null;
 
 const startedAt = Date.now();
 
@@ -77,4 +78,12 @@ export async function appendToolCall(entry: {
     .update(agentInvocations)
     .set({ agent_response: [...calls, entry] as any })
     .where(eq(agentInvocations.id, id));
+}
+
+// One MCP process serves one cycle, so this writes at most one equity point per cycle
+export function snapshotOnce(): Promise<void> {
+  if (!snapshotPromise) {
+    snapshotPromise = getAccountId().then(createAccountSnapshot);
+  }
+  return snapshotPromise;
 }
