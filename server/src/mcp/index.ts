@@ -4,26 +4,12 @@ import { z } from 'zod';
 
 import { TRADING_SYMBOLS } from '../config/exchange';
 import { closeDatabase } from '../config/database';
-import {
-  createPosition,
-  closePosition,
-  getAccountMetrics,
-  getOpenPositions,
-  markPositionsToMarket,
-  upsertMarketPrices,
-} from '../lib/exchange/helper';
+import { createPosition, closePosition } from '../lib/exchange/helper';
 import { round } from '../lib/utils';
 import { getInstrument, roundQuantity, describeConstraints } from '../lib/exchange/instruments';
 import { describeError } from '../lib/errors';
-import { snapshot, snapshotAll, screenSymbol, renderScreen, renderDetail, livePrices } from './market';
-import {
-  getAccountId,
-  currentInvocationId,
-  recordMarketData,
-  recordAnalysis,
-  appendToolCall,
-  snapshotOnce,
-} from './session';
+import { snapshot } from './market';
+import { getAccountId, currentInvocationId, recordAnalysis, appendToolCall } from './session';
 
 const log = (...args: unknown[]) => console.error('[bitnerve-mcp]', ...args);
 
@@ -47,99 +33,6 @@ async function record<T>(
 }
 
 const server = new McpServer({ name: 'bitnerve', version: '1.0.0' });
-
-server.registerTool(
-  'get_account_state',
-  {
-    title: 'Account state',
-    description:
-      'Current balance, equity, reserved margin, realised PnL and every open position. Call this before deciding anything.',
-    inputSchema: z.object({}),
-    annotations: { readOnlyHint: true },
-  },
-  async () =>
-    record('get_account_state', {}, async () => {
-    const accountId = await getAccountId();
-
-    const open = await getOpenPositions(accountId);
-    if (open.length > 0) {
-      const symbols = [...new Set(open.map(p => p.symbol))];
-      const marked = await markPositionsToMarket(accountId, await livePrices(symbols));
-      log(`marked ${marked}/${open.length} positions to market`);
-    }
-    await snapshotOnce();
-
-    const metrics = await getAccountMetrics(accountId);
-    const positions = await getOpenPositions(accountId);
-
-    const lines = [
-      `account value      ${round(metrics.accountValue, 2)}`,
-      `available cash     ${round(metrics.availableCash, 2)}`,
-      `reserved margin    ${round(metrics.reservedMargin, 2)}`,
-      `net exposure       ${round(metrics.cryptoValue, 2)}`,
-      `unrealised pnl     ${round(metrics.unrealizedPnL, 2)}`,
-      `total return       ${round(metrics.totalReturnPercent, 2)}%`,
-      `initial balance    ${round(metrics.initialBalance, 2)}`,
-      '',
-      positions.length ? 'OPEN POSITIONS' : 'No open positions.',
-      ...positions.map(p => {
-        const qty = parseFloat(p.quantity);
-        const entry = parseFloat(p.entry_price);
-        const current = parseFloat(p.current_price);
-        const pnl = parseFloat(p.unrealized_pnl);
-        return `${p.symbol.padEnd(9)} ${(p.side === 'BUY' ? 'LONG' : 'SHORT').padEnd(6)} qty ${round(qty, 6)}  entry ${round(entry, 4)}  mark ${round(current, 4)}  ${p.leverage}x  pnl ${round(pnl, 2)}`;
-      }),
-    ];
-
-    return {
-      payload: {
-        accountValue: round(metrics.accountValue, 2),
-        availableCash: round(metrics.availableCash, 2),
-        openPositions: positions.length,
-      },
-      body: lines.join('\n'),
-    };
-  })
-);
-
-server.registerTool(
-  'screen_symbols',
-  {
-    title: 'Screen all symbols',
-    description: `Ranked one-line summary of all ${TRADING_SYMBOLS.length} tradable symbols: 4h trend, momentum, volatility regime, volume and funding. Start every cycle here, then pull detail only for the candidates worth acting on.`,
-    inputSchema: z.object({}),
-    annotations: { readOnlyHint: true },
-  },
-  async () =>
-    record('screen_symbols', {}, async () => {
-      const all = await snapshotAll();
-      const rows = all.map(({ symbol, data }) => screenSymbol(symbol, data));
-      await recordMarketData(rows);
-      await upsertMarketPrices(rows.map(r => ({ symbol: r.symbol, price: r.price })));
-      return {
-        payload: rows.map(r => ({ symbol: r.symbol, score: r.score, bias: r.bias, trend: r.trend })),
-        body: renderScreen(rows),
-      };
-    })
-);
-
-server.registerTool(
-  'get_symbol_detail',
-  {
-    title: 'Symbol detail',
-    description:
-      'Full intraday and 4h indicator series for one symbol. Use it on the one or two candidates that screen_symbols ranked highest, not on everything.',
-    inputSchema: z.object({
-      symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
-    }),
-    annotations: { readOnlyHint: true },
-  },
-  async ({ symbol }) =>
-    record('get_symbol_detail', { symbol }, async () => {
-      const data = await snapshot(symbol);
-      return { payload: { symbol }, body: await renderDetail(symbol, data) };
-    })
-);
 
 server.registerTool(
   'create_position',

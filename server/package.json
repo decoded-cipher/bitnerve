@@ -8,6 +8,7 @@
   "main": "src/mcp/index.ts",
   "scripts": {
     "mcp": "bun run src/mcp/index.ts",
+    "brief": "bun run src/scripts/brief.ts",
     "symbols:sync": "bun run src/scripts/sync-symbols.ts",
     "schema:sync": "bun run src/scripts/sync-schema.ts",
     "db:generate": "drizzle-kit generate",

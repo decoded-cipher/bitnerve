@@ -30,17 +30,16 @@ const last = (arr: number[]): number => (arr.length ? arr[arr.length - 1] : 0);
 export interface SymbolScreen {
   symbol: string;
   price: number;
-  trend: 'up' | 'down';
-  trendStrengthPct: number;
-  macd: number;
-  rsi7: number;
+  ema20h4: number;
+  ema50h4: number;
+  trendGapPct: number;
+  macdH4: number;
   rsi14h4: number;
-  volatility: 'expanding' | 'steady' | 'contracting';
+  macd5m: number;
+  rsi7: number;
+  atrRatio: number;
   volumeRatio: number;
   fundingRate: number;
-  bias: 'long' | 'short' | 'neutral';
-  exhausted: boolean;
-  score: number;
 }
 
 export function screenSymbol(symbol: string, data: Snapshot): SymbolScreen {
@@ -48,68 +47,36 @@ export function screenSymbol(symbol: string, data: Snapshot): SymbolScreen {
   const ema50h4 = last(data.longerTerm.ema50);
   const atr3 = last(data.longerTerm.atr3);
   const atr14 = last(data.longerTerm.atr14);
-  const rsi14h4 = last(data.longerTerm.rsi14);
-  const macd = data.currentMacd ?? last(data.intraday.macd);
-  const rsi7 = data.currentRsi7 ?? last(data.intraday.rsi7);
-
-  const trend: 'up' | 'down' = ema20h4 >= ema50h4 ? 'up' : 'down';
-  const trendStrengthPct = ema50h4 !== 0 ? ((ema20h4 - ema50h4) / ema50h4) * 100 : 0;
-
-  const atrRatio = atr14 !== 0 ? atr3 / atr14 : 1;
-  const volatility: SymbolScreen['volatility'] =
-    atrRatio > 1.1 ? 'expanding' : atrRatio < 0.9 ? 'contracting' : 'steady';
-
   const avgVolume = data.longerTerm.volumeData.averageVolume;
-  const volumeRatio = avgVolume !== 0 ? data.longerTerm.volumeData.currentVolume / avgVolume : 0;
-
-  const trendVote = trend === 'up' ? 1 : -1;
-  const macdVote = macd > 0 ? 1 : macd < 0 ? -1 : 0;
-  const rsiVote = rsi14h4 > 55 ? 1 : rsi14h4 < 45 ? -1 : 0;
-  const agreement = trendVote + macdVote + rsiVote;
-
-  const bias: SymbolScreen['bias'] =
-    agreement >= 2 ? 'long' : agreement <= -2 ? 'short' : 'neutral';
-
-  const exhausted =
-    (bias === 'short' && rsi14h4 < 20) || (bias === 'long' && rsi14h4 > 80);
-
-  const confluence = Math.abs(agreement) / 3;
-  const magnitude = Math.min(Math.abs(trendStrengthPct) / 10, 1);
-  const participation = Math.min(volumeRatio, 2) / 2;
-  const raw = confluence * 0.5 + magnitude * 0.3 + participation * 0.2;
-  const score = round(exhausted ? raw * 0.5 : raw, 3);
 
   return {
     symbol,
     price: round(data.currentPrice, 4),
-    trend,
-    trendStrengthPct: round(trendStrengthPct, 2),
-    macd: round(macd, 2),
-    rsi7: round(rsi7, 1),
-    rsi14h4: round(rsi14h4, 1),
-    volatility,
-    volumeRatio: round(volumeRatio, 2),
+    ema20h4: round(ema20h4, 2),
+    ema50h4: round(ema50h4, 2),
+    trendGapPct: round(ema50h4 !== 0 ? ((ema20h4 - ema50h4) / ema50h4) * 100 : 0, 2),
+    macdH4: round(last(data.longerTerm.macd), 2),
+    rsi14h4: round(last(data.longerTerm.rsi14), 1),
+    macd5m: round(data.currentMacd ?? last(data.intraday.macd), 2),
+    rsi7: round(data.currentRsi7 ?? last(data.intraday.rsi7), 1),
+    atrRatio: round(atr14 !== 0 ? atr3 / atr14 : 1, 2),
+    volumeRatio: round(avgVolume !== 0 ? data.longerTerm.volumeData.currentVolume / avgVolume : 0, 2),
     fundingRate: round(Number(data.fundingRate) || 0, 6),
-    bias,
-    exhausted,
-    score,
   };
 }
 
 export function renderScreen(rows: SymbolScreen[]): string {
-  const ranked = [...rows].sort((a, b) => b.score - a.score);
-  const header = 'SYMBOL   PRICE        BIAS     SCORE  TREND(4H)  MACD      RSI7   RSI14/4H  VOL         VOL×   FUNDING';
-  const lines = ranked.map(r =>
+  const header = 'SYMBOL   PRICE        EMA20-50/4H  MACD/4H   RSI14/4H  MACD/5M   RSI7/5M  ATR3/14  VOL\u00d7   FUNDING';
+  const lines = rows.map(r =>
     [
       r.symbol.padEnd(8),
       String(r.price).padEnd(12),
-      (r.exhausted ? `${r.bias}!` : r.bias).padEnd(8),
-      String(r.score).padEnd(6),
-      `${r.trend} ${r.trendStrengthPct > 0 ? '+' : ''}${r.trendStrengthPct}%`.padEnd(10),
-      String(r.macd).padEnd(9),
-      String(r.rsi7).padEnd(6),
+      `${r.trendGapPct > 0 ? '+' : ''}${r.trendGapPct}%`.padEnd(12),
+      String(r.macdH4).padEnd(9),
       String(r.rsi14h4).padEnd(9),
-      r.volatility.padEnd(11),
+      String(r.macd5m).padEnd(9),
+      String(r.rsi7).padEnd(8),
+      String(r.atrRatio).padEnd(8),
       String(r.volumeRatio).padEnd(6),
       String(r.fundingRate),
     ].join(' ')
@@ -119,10 +86,9 @@ export function renderScreen(rows: SymbolScreen[]): string {
     header,
     ...lines,
     '',
-    'score = 0.5*indicator confluence + 0.3*4h trend magnitude + 0.2*volume participation.',
-    'A "!" on the bias means 4h RSI is already exhausted in that direction and the score is halved:',
-    'the move is late, and a reversal is the likelier edge than joining it.',
-    'It ranks setups only; it is not a signal. Pull get_symbol_detail before acting.',
+    'EMA20-50/4H is the 4h EMA20 relative to EMA50, as a percentage of EMA50.',
+    'ATR3/14 is 4h ATR(3) over ATR(14). VOL\u00d7 is current 4h volume over its average.',
+    'These are measurements in symbol order, not a ranking. Rank them yourself.',
   ].join('\n');
 }
 

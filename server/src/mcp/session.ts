@@ -1,20 +1,31 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { db, agentInvocations } from '../config/database';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, gte } from 'drizzle-orm';
 import { getOrCreateAccount, getAccountMetrics, createAccountSnapshot } from '../lib/exchange/helper';
 
 const INITIAL_BALANCE = Number.parseInt(process.env.INITIAL_BALANCE ?? '', 10) || 10000;
 
-// MCP never sees the conversation, so the cycle prompt comes from the env or the prompt file
-function cyclePrompt(): string {
-  const override = process.env.CYCLE_PROMPT?.trim();
-  if (override) return override;
+// MCP never sees the conversation, so the prompt is reassembled from the files the launcher sends
+const PROMPT_DIR = fileURLToPath(new URL('../../prompts/', import.meta.url));
+
+function readPrompt(name: string): string {
   try {
-    return readFileSync(fileURLToPath(new URL('../../prompts/cycle.md', import.meta.url)), 'utf8').trim();
+    return readFileSync(`${PROMPT_DIR}${name}`, 'utf8').trim();
   } catch {
     return '';
   }
+}
+
+export function systemPrompt(): string {
+  return process.env.SYSTEM_PROMPT?.trim() || readPrompt('system.md');
+}
+
+export function fullPrompt(userPrompt: string): string {
+  return [
+    `# System prompt\n\n${systemPrompt()}`,
+    `# User prompt\n\n${userPrompt.trim()}`,
+  ].join('\n\n');
 }
 
 let accountIdPromise: Promise<string> | null = null;
@@ -30,25 +41,53 @@ export function getAccountId(): Promise<string> {
   return accountIdPromise;
 }
 
+const ADOPT_WINDOW_MS = Number.parseInt(process.env.INVOCATION_ADOPT_MS ?? '', 10) || 1_800_000;
+
+async function insertInvocation(accountId: string, userPrompt: string, marketData: unknown): Promise<string> {
+  const metrics = await getAccountMetrics(accountId);
+  const [row] = await db
+    .insert(agentInvocations)
+    .values({
+      account_id: accountId,
+      session_state: { startTime: startedAt, invocationCount: 0 } as any,
+      market_data: (marketData ?? {}) as any,
+      metrics: metrics as any,
+      user_prompt: fullPrompt(userPrompt),
+      chain_of_thought: '',
+      agent_response: null,
+      finish_reason: null,
+    })
+    .returning();
+  return row.id;
+}
+
+export async function startInvocation(userPrompt: string, marketData: unknown): Promise<string> {
+  const accountId = await getAccountId();
+  const id = await insertInvocation(accountId, userPrompt, marketData);
+  invocationIdPromise = Promise.resolve(id);
+  return id;
+}
+
+// The brief opens the invocation in its own process; the tools attach to that same row
 export function currentInvocationId(): Promise<string> {
   if (!invocationIdPromise) {
     invocationIdPromise = (async () => {
       const accountId = await getAccountId();
-      const metrics = await getAccountMetrics(accountId);
-      const [row] = await db
-        .insert(agentInvocations)
-        .values({
-          account_id: accountId,
-          session_state: { startTime: startedAt, invocationCount: 0 } as any,
-          market_data: {} as any,
-          metrics: metrics as any,
-          user_prompt: cyclePrompt(),
-          chain_of_thought: '',
-          agent_response: null,
-          finish_reason: null,
-        })
-        .returning();
-      return row.id;
+      const cutoff = new Date(Date.now() - ADOPT_WINDOW_MS);
+      const [pending] = await db
+        .select({ id: agentInvocations.id })
+        .from(agentInvocations)
+        .where(
+          and(
+            eq(agentInvocations.account_id, accountId),
+            eq(agentInvocations.chain_of_thought, ''),
+            gte(agentInvocations.created_at, cutoff)
+          )
+        )
+        .orderBy(desc(agentInvocations.created_at))
+        .limit(1);
+
+      return pending ? pending.id : insertInvocation(accountId, 'Cycle started without a brief.', {});
     })();
   }
   return invocationIdPromise;
