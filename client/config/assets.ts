@@ -10,8 +10,8 @@ import solIcon from '~/assets/icons/coin/sol.svg'
 import bnbIcon from '~/assets/icons/coin/bnb.svg'
 import xrpIcon from '~/assets/icons/coin/xrp.svg'
 import dogeIcon from '~/assets/icons/coin/doge.svg'
-import hypeIcon from '~/assets/icons/coin/hype.svg'
-import linkIcon from '~/assets/icons/coin/link.svg'
+import hypeIcon from '~/assets/icons/coin/hype.png'
+import linkIcon from '~/assets/icons/coin/link.png'
 
 // Import model icons
 import groqIcon from '~/assets/icons/model/groq.webp'
