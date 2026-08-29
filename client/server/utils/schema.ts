@@ -12,7 +12,7 @@ function timestamps() {
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the trading account
   provider: text('provider').notNull().default('anthropic'), // LLM provider running this account
-  model_name: text('model_name').notNull().default('claude-opus-4-5'), // Model identifier for this account
+  model_name: text('model_name').notNull().default('claude-opus-5'), // Model identifier for this account
   initial_balance: numeric('initial_balance', { precision: 20, scale: 8 }).notNull(), // Starting balance when account was created
   current_balance: numeric('current_balance', { precision: 20, scale: 8 }).notNull(), // Current available cash balance (excluding unrealized PnL)
   total_pnl: numeric('total_pnl', { precision: 20, scale: 8 }).default('0').notNull(), // Total realized profit and loss from all closed positions

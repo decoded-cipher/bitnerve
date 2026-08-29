@@ -1,5 +1,5 @@
 {
-  "id": "1bd75a26-3b28-4523-8409-14dd0652fac0",
+  "id": "c556e92b-7061-4eaf-a920-da7684e573c2",
   "prevId": "bc5ec9be-9ee7-4385-9220-ea18aeb1c15a",
   "version": "7",
   "dialect": "postgresql",
@@ -163,7 +163,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'claude-opus-4-5'"
+          "default": "'claude-opus-5'"
         },
         "initial_balance": {
           "name": "initial_balance",
