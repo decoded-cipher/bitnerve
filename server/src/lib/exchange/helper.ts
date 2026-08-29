@@ -54,7 +54,7 @@ export async function getOrCreateAccount(
 }
 
 // Get account details
-export async function getAccountBalance(accountId: string, tx: Executor = db) {
+async function getAccountBalance(accountId: string, tx: Executor = db) {
   const [account] = await tx
     .select()
     .from(accounts)
@@ -411,7 +411,7 @@ export async function getAccountMetrics(accountId: string, tx: Executor = db) {
     ? ((accountValue - initialBalance) / initialBalance) * 100 
     : 0;
 
-  // Sharpe ratio over per-trade returns, each measured against the starting balance
+  // Sharpe ratio over per-trade returns
   let sharpeRatio: number | null = null;
   if (closedOrders.length >= MIN_SHARPE_TRADES && initialBalance > 0) {
     const returns = closedOrders.map(order => parseFloat(order.realized_pnl || '0') / initialBalance);

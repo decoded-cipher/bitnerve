@@ -223,7 +223,6 @@ const refreshAll = async () => {
   lastUpdated.value = new Date()
 }
 
-// Pause polling while the tab is hidden, and catch up as soon as it is visible again
 const onVisibilityChange = () => {
   if (document.visibilityState === 'visible') refreshAll()
 }

@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
   css: ['~/assets/css/main.css'],
   app: {
     head: {
@@ -165,11 +165,6 @@ export default defineNuxtConfig({
     },
   },
   modules: ["radix-vue/nuxt"],
-
-  site: {
-    url: "https://bitnerve.arjunkrishna.dev",
-    name: "BitNerve",
-  },
 
   build: {
     transpile: ['radix-vue', 'apexcharts', 'vue3-apexcharts'],

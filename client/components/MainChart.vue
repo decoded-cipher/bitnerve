@@ -76,8 +76,7 @@ const modelsWithValues = computed(() => {
   }))
 })
 
-// Lay out one x slot per data point, plus an empty slot wherever there is a gap in time.
-// Categories and series are built from the same slot list so they stay the same length.
+// One x slot per data point, plus an empty slot at every gap in time
 const chartLayout = computed(() => {
   const timestamps = props.accountValues.map(av => av.timestamp.getTime())
   const MIN_GAP = 60 * 60 * 1000 // 1 hour threshold
@@ -97,7 +96,7 @@ const chartLayout = computed(() => {
   return { categories, sources }
 })
 
-// Plots TOTAL ACCOUNT VALUE over time: current_balance (realized PnL included) plus unrealized PnL from open positions
+// Plots total account value over time
 const chartSeries = computed(() => {
   const { sources } = chartLayout.value
 

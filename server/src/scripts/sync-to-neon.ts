@@ -1,14 +1,16 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq, inArray } from 'drizzle-orm';
-import { PgTable } from 'drizzle-orm/pg-core';
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '../config/database/schema';
 import { connectionString } from '../config/database/index';
+
+type SyncableTable = PgTable<any> & { id: PgColumn };
 
 async function syncTable(
   localDb: ReturnType<typeof drizzle>,
   neonDb: ReturnType<typeof drizzle>,
-  table: PgTable<any>,
+  table: SyncableTable,
   tableName: string
 ): Promise<number> {
   console.log(`Syncing ${tableName}...`);
