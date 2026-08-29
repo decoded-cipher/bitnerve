@@ -10,6 +10,8 @@ import solIcon from '~/assets/icons/coin/sol.svg'
 import bnbIcon from '~/assets/icons/coin/bnb.svg'
 import xrpIcon from '~/assets/icons/coin/xrp.svg'
 import dogeIcon from '~/assets/icons/coin/doge.svg'
+import hypeIcon from '~/assets/icons/coin/hype.svg'
+import linkIcon from '~/assets/icons/coin/link.svg'
 
 // Import model icons
 import groqIcon from '~/assets/icons/model/groq.webp'
@@ -68,6 +70,16 @@ export const COINS: Record<string, CoinConfig> = {
     fullName: 'Dogecoin',
     icon: dogeIcon,
   },
+  HYPE: {
+    symbol: 'HYPE',
+    fullName: 'Hyperliquid',
+    icon: hypeIcon,
+  },
+  LINK: {
+    symbol: 'LINK',
+    fullName: 'Chainlink',
+    icon: linkIcon,
+  },
 }
 
 /**
@@ -119,7 +131,7 @@ export const MODELS: ModelConfig[] = [
  * @returns CoinConfig or undefined if not found
  */
 export function getCoinConfig(symbol: string): CoinConfig | undefined {
-  const upperSymbol = symbol.toUpperCase()
+  const upperSymbol = symbol.toUpperCase().replace(/(USDT|USDC|USD)$/, '')
   return COINS[upperSymbol]
 }
 

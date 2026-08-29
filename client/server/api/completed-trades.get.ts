@@ -94,7 +94,7 @@ export default defineEventHandler(async (event) => {
         id: order.id,
         model_name: formatModelName(account.model_name),
         trade_type: tradeType,
-        coin: order.symbol.replace('USDT', ''),
+        coin: order.symbol.replace(/USDT$/, ''),
         completed_at: order.created_at,
         entry_price: entryPrice,
         exit_price: exitPrice,

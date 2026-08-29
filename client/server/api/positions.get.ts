@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
 
       const positionData = {
         id: position.id,
-        symbol: position.symbol,
+        symbol: position.symbol.replace(/USDT$/, ''),
         side: sideDisplay as 'LONG' | 'SHORT',
         quantity: parseFloat(position.quantity),
         entry_price: parseFloat(position.entry_price),
