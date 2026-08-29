@@ -2,7 +2,7 @@
   "mcpServers": {
     "bitnerve": {
       "command": "bun",
-      "args": ["run", "server/src/mcp/index.ts"],
+      "args": ["--env-file=server/.env", "run", "server/src/mcp/index.ts"],
       "env": {
         "NODE_ENV": "development"
       }

@@ -1,6 +1,7 @@
 import { db, accounts, positions, orders, accountSnapshots, marketPrices } from '../../config/database';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
+import { TRADING_PROVIDER, TRADING_MODEL } from '../../config/model';
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -16,11 +17,16 @@ function fitNumeric(value: number, precision: number, scale: number): string | n
  * Simulates trading operations without real money
  */
 
-// Get or create a default trading account
-export async function getOrCreateAccount(initialBalance: number = 10000) {
+// Get or create the trading account for a given model
+export async function getOrCreateAccount(
+  initialBalance: number = 10000,
+  provider: string = TRADING_PROVIDER,
+  modelName: string = TRADING_MODEL
+) {
   const [existingAccount] = await db
     .select()
     .from(accounts)
+    .where(and(eq(accounts.provider, provider), eq(accounts.model_name, modelName)))
     .limit(1);
 
   if (existingAccount) {
@@ -30,6 +36,8 @@ export async function getOrCreateAccount(initialBalance: number = 10000) {
   const [newAccount] = await db
     .insert(accounts)
     .values({
+      provider,
+      model_name: modelName,
       initial_balance: initialBalance.toString(),
       current_balance: initialBalance.toString(),
       total_pnl: '0',

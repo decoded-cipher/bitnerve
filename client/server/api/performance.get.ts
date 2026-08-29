@@ -1,13 +1,5 @@
 import { getDb, accounts } from '~/server/utils/db'
-
-// Model name mapping - same as in accounts.get.ts
-// In the future, this can be replaced with a model_name field in the accounts table
-function getModelName(accountId: string): string {
-  // For now, since there's only one account, return the known model name
-  // This can be enhanced to check agent_invocations or use a mapping table
-  // TODO: Add model_name field to accounts table or create a mapping table
-  return 'google/gemini-2.0-flash-001'
-}
+import { formatModelName } from '~/config/model'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -39,6 +31,7 @@ export default defineEventHandler(async (event) => {
       
       return {
         id: account.id,
+        model_name: account.model_name,
         account_value: accountValue,
         change,
       }
@@ -55,16 +48,16 @@ export default defineEventHandler(async (event) => {
     
     return {
       highest: {
-        model: getModelName(highest.id).toUpperCase(),
+        model: formatModelName(highest.model_name),
         value: highest.account_value,
         change: highest.change,
-        icon: 'gemini'
+        icon: highest.model_name
       },
       lowest: {
-        model: getModelName(lowest.id).toUpperCase(),
+        model: formatModelName(lowest.model_name),
         value: lowest.account_value,
         change: lowest.change,
-        icon: 'gemini'
+        icon: lowest.model_name
       },
     }
   } catch (error) {

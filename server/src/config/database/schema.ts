@@ -1,4 +1,4 @@
-import { pgTable, index, uuid, text, numeric, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, index, uniqueIndex, uuid, text, numeric, timestamp, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 function timestamps() {
   return {
@@ -9,6 +9,8 @@ function timestamps() {
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the trading account
+  provider: text('provider').notNull().default('anthropic'), // LLM provider running this account
+  model_name: text('model_name').notNull().default('claude-opus-4-5'), // Model identifier for this account
   initial_balance: numeric('initial_balance', { precision: 20, scale: 8 }).notNull(), // Starting balance when account was created
   current_balance: numeric('current_balance', { precision: 20, scale: 8 }).notNull(), // Current available cash balance (excluding unrealized PnL)
   total_pnl: numeric('total_pnl', { precision: 20, scale: 8 }).default('0').notNull(), // Total realized profit and loss from all closed positions
@@ -20,6 +22,7 @@ export const accounts = pgTable('accounts', {
   ...timestamps(),
 }, (table) => [
   index('idx_accounts_created').on(table.created_at),
+  uniqueIndex('idx_accounts_model').on(table.provider, table.model_name),
 ]);
 
 export const positions = pgTable('positions', {

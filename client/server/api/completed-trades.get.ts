@@ -1,12 +1,6 @@
 import { getDb, orders, accounts, positions } from '~/server/utils/db'
 import { eq, and, desc, sql, count } from 'drizzle-orm'
-
-// Model name mapping - same as in accounts.get.ts
-function getModelName(accountId: string): string {
-  // For now, since there's only one account, return the known model name
-  // This can be enhanced to check agent_invocations or use a mapping table
-  return 'google/gemini-2.0-flash-001'
-}
+import { formatModelName } from '~/config/model'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -65,8 +59,6 @@ export default defineEventHandler(async (event) => {
     for (const { order, account, position } of closedOrders) {
       if (!order.filled_price || !order.realized_pnl) continue
       
-      const modelName = getModelName(account.id)
-      
       // Use stored trade_value if available, otherwise calculate
       // Calculate entry price from position or use order price
       const entryPrice = position ? parseFloat(position.entry_price) : parseFloat(order.price || '0')
@@ -100,7 +92,7 @@ export default defineEventHandler(async (event) => {
       
       allTrades.push({
         id: order.id,
-        model_name: modelName,
+        model_name: formatModelName(account.model_name),
         trade_type: tradeType,
         coin: order.symbol.replace('USDT', ''),
         completed_at: order.created_at,

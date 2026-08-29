@@ -1,12 +1,6 @@
 import { getDb, agentInvocations, accounts } from '~/server/utils/db'
 import { eq, desc, count } from 'drizzle-orm'
-
-// Model name mapping - same as in accounts.get.ts
-function getModelName(accountId: string): string {
-  // For now, since there's only one account, return the known model name
-  // This can be enhanced to check agent_invocations or use a mapping table
-  return 'google/gemini-2.0-flash-001'
-}
+import { formatModelName } from '~/config/model'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -41,15 +35,7 @@ export default defineEventHandler(async (event) => {
     
     // Format the messages with full details
     const messages = invocations.map(({ invocation, account }) => {
-      // Extract model name and format it
-      const modelName = getModelName(account.id)
-      const formattedName = modelName
-        .replace(/\//g, ' ')
-        .replace(/-/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-        .toUpperCase()
+      const formattedName = formatModelName(account.model_name)
       
       // Get the chain of thought text (the agent's response)
       const messageText = invocation.chain_of_thought || 'No response available'

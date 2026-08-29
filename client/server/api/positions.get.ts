@@ -1,10 +1,5 @@
 import { getDb, positions, accounts } from '~/server/utils/db'
-import { eq, and } from 'drizzle-orm'
-
-// Model name mapping - same as in accounts.get.ts
-function getModelName(accountId: string): string {
-  return 'google/gemini-2.0-flash-001'
-}
+import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -34,6 +29,8 @@ export default defineEventHandler(async (event) => {
           account_id: account.id,
           account: {
             id: account.id,
+            provider: account.provider,
+            model_name: account.model_name,
             initial_balance: parseFloat(account.initial_balance),
             current_balance: parseFloat(account.current_balance),
             total_pnl: parseFloat(account.total_pnl),

@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { useHead, useFetch, computed } from '#imports'
 import type { CryptoPrice, Model, AccountValue, ModelPerformance, ModelPositions } from '~/types'
+import { formatModelName } from '~/config/model'
 
 useHead({
   title: 'BitNerve - Real-Time Crypto Trading Performance',
@@ -99,14 +100,7 @@ const getModelStyle = (modelName: string, index: number) => {
 const models = computed<Model[]>(() => {
   return accounts.value.map((account, index: number) => {
     const style = getModelStyle(account.model_name || '', index)
-    // Format model name: convert slashes to spaces and make it readable
-    const formattedName = (account.model_name || `Model ${index + 1}`)
-      .replace(/\//g, ' ')
-      .replace(/-/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-      .toUpperCase()
+    const formattedName = formatModelName(account.model_name || `Model ${index + 1}`)
     
     return {
       id: account.id,
