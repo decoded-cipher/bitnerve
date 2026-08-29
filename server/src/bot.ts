@@ -2,6 +2,7 @@ import { invokeAgent } from './lib/agent';
 import { getOrCreateAccount, getOpenPositions, updatePositionPnL, createAccountSnapshot } from './lib/exchange/helper';
 import { fetchMarketData } from './lib/exchange';
 import { closeDatabase } from './config/database';
+import { isRateLimitError, describeError } from './lib/llm/errors';
 import type { SessionState } from './types';
 
 interface TradingBotConfig {
@@ -9,6 +10,8 @@ interface TradingBotConfig {
   runIntervalMinutes?: number;
   maxIterations?: number;
   updateIntervalMinutes?: number; // How often to update position PnL
+  maxRetries?: number;
+  retryBaseDelayMs?: number;
 }
 
 /**
@@ -26,6 +29,8 @@ export class TradingBot {
       runIntervalMinutes: config.runIntervalMinutes || 5,
       maxIterations: config.maxIterations || 100,
       updateIntervalMinutes: config.updateIntervalMinutes || 1,
+      maxRetries: config.maxRetries || Number.parseInt(process.env.LLM_MAX_RETRIES ?? '', 10) || 3,
+      retryBaseDelayMs: config.retryBaseDelayMs || Number.parseInt(process.env.LLM_RETRY_BASE_MS ?? '', 10) || 20_000,
     };
   }
 
@@ -34,7 +39,7 @@ export class TradingBot {
    */
   async initialize(): Promise<void> {
     console.log('🤖 Initializing Trading Bot...');
-    
+
     // Create or get account
     const account = await getOrCreateAccount(this.config.initialBalance);
     this.accountId = account.id;
@@ -48,6 +53,7 @@ export class TradingBot {
 
     console.log(`✅ Account initialized: ${account.id}`);
     console.log(`💰 Initial Balance: $${this.config.initialBalance.toLocaleString()}`);
+    console.log(`🧠 LLM provider: ${process.env.LLM_PROVIDER ?? 'openrouter'}`);
   }
 
   /**
@@ -81,6 +87,43 @@ export class TradingBot {
   }
 
   /**
+   * Invoke the agent, retrying only on provider rate limits
+   */
+  private async invokeWithRetry(sessionState: SessionState, accountId: string) {
+    for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
+      try {
+        return await invokeAgent(sessionState, accountId);
+      } catch (error) {
+        const info = describeError(error);
+
+        if (!isRateLimitError(error)) {
+          console.error(`❌ Agent invocation failed (not retryable):`, info);
+          throw error;
+        }
+
+        if (attempt === this.config.maxRetries) {
+          console.error(`⛔️ Rate limited after ${attempt} attempts. Skipping this cycle.`, info);
+          throw error;
+        }
+
+        const backoff = this.config.retryBaseDelayMs * 2 ** (attempt - 1);
+        const delay = Math.round(backoff * (0.5 + Math.random() * 0.5));
+        console.warn(
+          `⏱️  Rate limited (attempt ${attempt}/${this.config.maxRetries}). Retrying in ${Math.round(delay / 1000)}s.`,
+          info
+        );
+        await this.sleep(delay);
+
+        if (this.shouldStop) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Agent invocation exhausted retries');
+  }
+
+  /**
    * Run one trading decision cycle
    */
   async runOneCycle(): Promise<void> {
@@ -90,9 +133,9 @@ export class TradingBot {
 
     try {
       console.log(`\n🔄 Running cycle ${this.sessionState.invocationCount + 1}...`);
-      
+
       // Generate trading decision
-      const result = await invokeAgent(this.sessionState, this.accountId);
+      const result = await this.invokeWithRetry(this.sessionState, this.accountId);
 
       console.log(`\n🤖 Agent Response:`);
       console.log(result.text);
@@ -104,22 +147,17 @@ export class TradingBot {
           console.log(`  - ${toolCall.toolName}:`, JSON.stringify(toolCall.result, null, 2));
         }
       }
-
-      // Update session state
-      this.sessionState.invocationCount++;
-      
-      // Create snapshot after each trading cycle
-      if (this.accountId) {
-        try {
-          await createAccountSnapshot(this.accountId);
-        } catch (error) {
-          console.error('Error creating account snapshot:', error);
-        }
-      }
-      
     } catch (error) {
-      console.error('Error in trading cycle:', error);
+      console.error('Error in trading cycle:', describeError(error));
+    } finally {
       this.sessionState.invocationCount++;
+
+      // Create snapshot after each trading cycle
+      try {
+        await createAccountSnapshot(this.accountId);
+      } catch (error) {
+        console.error('Error creating account snapshot:', error);
+      }
     }
   }
 
@@ -128,7 +166,7 @@ export class TradingBot {
    */
   async start(): Promise<void> {
     await this.initialize();
-    
+
     console.log('\n🚀 Starting Trading Bot...');
     console.log(`⏰ Run interval: ${this.config.runIntervalMinutes} minutes`);
     console.log(`🔄 Max iterations: ${this.config.maxIterations}`);
@@ -141,7 +179,7 @@ export class TradingBot {
     const updateInterval = setInterval(async () => {
       const now = Date.now();
       const minutesPassed = (now - lastUpdateTime) / (1000 * 60);
-      
+
       if (minutesPassed >= this.config.updateIntervalMinutes) {
         await this.updatePositions();
         lastUpdateTime = now;

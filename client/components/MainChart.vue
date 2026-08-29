@@ -126,10 +126,28 @@ const chartOptions = computed(() => {
   
   const allValues = props.accountValues.flatMap(av => 
     Object.values(av.models)
-  )
-  const maxValue = allValues.length > 0 ? Math.max(...allValues) : 15000
-  const yAxisMax = Math.max(15000, Math.ceil(maxValue / 2500) * 2500)
-  const yAxisMin = Math.floor(Math.min(...allValues) / 2500) * 2500
+  ).filter(v => v != null)
+  
+  if (allValues.length === 0) {
+    // Fallback values when no data
+    return {
+      chart: { type: 'line' as const },
+      yaxis: { min: 0, max: 15000 }
+    }
+  }
+  
+  const maxValue = Math.max(...allValues)
+  const minValue = Math.min(...allValues)
+  
+  // Add 5% padding to top and bottom for better visibility
+  const range = maxValue - minValue
+  const padding = range > 0 ? range * 0.05 : 50 // Minimum 50 padding if range is tiny
+  
+  const yAxisMax = Math.ceil((maxValue + padding) / 100) * 100
+  const yAxisMin = Math.floor((minValue - padding) / 100) * 100
+  
+  // Calculate reasonable tick amount based on range
+  const tickAmount = Math.min(10, Math.max(5, Math.ceil(range / 500)))
 
   return {
     chart: {
@@ -212,7 +230,7 @@ const chartOptions = computed(() => {
     yaxis: {
       min: yAxisMin,
       max: yAxisMax,
-      tickAmount: Math.ceil((yAxisMax - yAxisMin) / 2500),
+      tickAmount: tickAmount,
       labels: {
         style: {
           colors: '#000000',

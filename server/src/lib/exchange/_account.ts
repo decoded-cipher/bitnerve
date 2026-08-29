@@ -94,7 +94,7 @@ export function calcPerformanceMetrics(
       let cumulativePnL = 0;
       
       for (const order of accountData.closedOrders) {
-        const pnL = order.realized_pnl || order.pnl || 0;
+        const pnL = parseFloat(order.realized_pnl ?? order.pnl ?? 0) || 0;
         cumulativePnL += pnL;
         const orderReturn = cumulativePnL / initialBalance;
         returns.push(orderReturn);

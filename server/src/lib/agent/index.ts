@@ -1,7 +1,6 @@
 
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 import { getMarketData } from '../exchange';
 import type { SessionState } from '../../types';
@@ -11,17 +10,15 @@ import { createPosition, closePosition } from '../exchange/helper';
 import { TRADING_SYMBOLS } from '../../config/exchange';
 import { db, agentInvocations } from '../../config/database';
 import { eq } from 'drizzle-orm';
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+import { getLanguageModel } from '../llm';
 
 
 
 
 export async function invokeAgent(
   sessionState: SessionState,
-  accountId: string
+  accountId: string,
+  modelOverride?: string
 ): Promise<{
   text: string;
   toolCalls?: Array<{ toolName: string; args: any; result: any }>;
@@ -53,22 +50,23 @@ export async function invokeAgent(
 
   // Generate text with tools
   const { text, toolCalls, finishReason } = await generateText({
-    model: openrouter(process.env.OPENROUTER_MODEL!),
+    model: getLanguageModel(modelOverride),
     system: PROMPT.SYSTEM,
     prompt: userPrompt,
     tools: {
       createPosition: tool({
-        description: `Open a new BUY (long) or SELL (short) position for a cryptocurrency perpetual futures contract. Use this when you identify a strong entry signal based on technical analysis. Supported symbols: ${TRADING_SYMBOLS.join(', ')}. Analyze all available symbols and trade the one with the best opportunity. Use reasonable position sizes - quantities should be in the range of 0.01 to 10 units depending on the symbol and your available cash and risk tolerance.`,
+        description: `Open a new BUY (long) or SELL (short) position for a cryptocurrency perpetual futures contract. Use this when you identify a strong entry signal based on technical analysis. Supported symbols: ${TRADING_SYMBOLS.join(', ')}. Analyze all available symbols, choose the best opportunity, and select an appropriate leverage up to 25x. Use reasonable position sizes - quantities should be in the range of 0.01 to 10 units depending on the symbol, available cash, and risk tolerance.`,
         inputSchema: z.object({
           symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]).describe(`The trading symbol. Supported symbols: ${TRADING_SYMBOLS.join(', ')}. Choose based on which symbol presents the best trading opportunity.`),
           side: z.enum(['BUY', 'SELL']).describe('BUY for long positions (profit when price increases), SELL for short positions (profit when price decreases)'),
           quantity: z.number().describe('The quantity to trade. Use reasonable sizes based on available cash, risk management, and the symbol being traded (e.g., 0.1 BTC for BTCUSDT, 1 ETH for ETHUSDT, 10 SOL for SOLUSDT).'),
+          leverage: z.number().int().min(1).max(25).optional().describe('Optional leverage multiplier (1-25). Choose higher leverage only when conviction is strong and risk is controlled. Defaults to 1x if omitted.'),
         }),
-        execute: async ({ symbol, side, quantity }) => {
+        execute: async ({ symbol, side, quantity, leverage }) => {
           const marketData = await getMarketData(symbol);
-          const position = await createPosition(accountId, symbol, side, quantity, marketData.currentPrice, invocationId);
+          const position = await createPosition(accountId, symbol, side, quantity, marketData.currentPrice, invocationId, leverage ?? 1);
           
-          console.log(`Opened position: ${side} ${quantity} ${symbol} at $${marketData.currentPrice}`);
+          console.log(`Opened position: ${side} ${quantity} ${symbol} at $${marketData.currentPrice} with ${leverage ?? 1}x leverage`);
           return position;
         },
       }),

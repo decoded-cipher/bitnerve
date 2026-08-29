@@ -14,7 +14,7 @@ export const accounts = pgTable('accounts', {
   total_pnl: numeric('total_pnl', { precision: 20, scale: 8 }).default('0').notNull(), // Total realized profit and loss from all closed positions
   // Calculated metrics that should be stored
   account_value: numeric('account_value', { precision: 20, scale: 8 }), // Total account value = current_balance + unrealized PnL from open positions
-  crypto_value: numeric('crypto_value', { precision: 20, scale: 8 }).default('0'), // Total unrealized PnL from all open positions (value of crypto holdings)
+  crypto_value: numeric('crypto_value', { precision: 20, scale: 8 }).default('0'), // Net crypto exposure (signed notional of open positions)
   total_return_percent: numeric('total_return_percent', { precision: 10, scale: 4 }), // Percentage return: ((account_value - initial_balance) / initial_balance) * 100
   sharpe_ratio: numeric('sharpe_ratio', { precision: 10, scale: 6 }), // Risk-adjusted return metric calculated from order returns
   ...timestamps(),
@@ -72,7 +72,7 @@ export const accountSnapshots = pgTable('account_snapshots', {
   account_id: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }).notNull(), // Foreign key to the account this snapshot belongs to
   account_value: numeric('account_value', { precision: 20, scale: 8 }).notNull(), // Total account value at snapshot time
   current_balance: numeric('current_balance', { precision: 20, scale: 8 }).notNull(), // Available cash balance at snapshot time
-  crypto_value: numeric('crypto_value', { precision: 20, scale: 8 }).default('0').notNull(), // Total unrealized PnL from open positions at snapshot time
+  crypto_value: numeric('crypto_value', { precision: 20, scale: 8 }).default('0').notNull(), // Net crypto exposure at snapshot time
   total_pnl: numeric('total_pnl', { precision: 20, scale: 8 }).default('0').notNull(), // Total realized PnL at snapshot time
   total_return_percent: numeric('total_return_percent', { precision: 10, scale: 4 }), // Percentage return at snapshot time
   sharpe_ratio: numeric('sharpe_ratio', { precision: 10, scale: 6 }), // Sharpe ratio at snapshot time

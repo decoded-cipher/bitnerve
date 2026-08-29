@@ -120,7 +120,8 @@ export async function createPosition(
   side: 'BUY' | 'SELL',
   quantity: number,
   price: number,
-  agentInvocationId?: string
+  agentInvocationId?: string,
+  leverage: number = 1
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
@@ -141,6 +142,8 @@ export async function createPosition(
   }
 
   // Create new position
+  const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.min(Math.floor(leverage), 25) : 1;
+
   const [newPosition] = await db
     .insert(positions)
     .values({
@@ -151,17 +154,26 @@ export async function createPosition(
       entry_price: price.toString(),
       current_price: price.toString(),
       unrealized_pnl: '0',
-      leverage: 1,
+      leverage: normalizedLeverage,
       is_open: true,
     })
     .returning();
 
-  // Calculate trade value
-  const tradeValue = side === 'BUY' ? price * quantity : -price * quantity;
+  // Calculate trade value (signed notional) and margin requirement
+  const notional = price * quantity;
+  const tradeValue = side === 'BUY' ? notional : -notional;
+  const marginUsed = Math.abs(notional) / normalizedLeverage;
   
   // Update account balance
   const currentBalance = parseFloat(account.current_balance);
-  const newBalance = currentBalance + tradeValue;
+  const newBalance = currentBalance - marginUsed;
+
+  if (!Number.isFinite(newBalance)) {
+    throw new Error('Invalid balance calculation when creating position');
+  }
+  if (newBalance < 0) {
+    throw new Error('Insufficient balance to satisfy margin requirement for this position');
+  }
 
   await db
     .update(accounts)
@@ -186,6 +198,10 @@ export async function createPosition(
       filled_price: price.toString(),
       trade_value: tradeValue.toString(),
       position_id: newPosition.id,
+      metadata: {
+        leverage: normalizedLeverage,
+        margin_used: marginUsed,
+      } as any,
     })
     .returning();
 
@@ -230,6 +246,7 @@ export async function closePosition(
   // Calculate realized PnL
   const entryPrice = parseFloat(existingPosition.entry_price);
   const currentPrice = parseFloat(existingPosition.current_price);
+  const positionLeverage = existingPosition.leverage || 1;
   
   let realizedPnL = 0;
   if (existingPosition.side === 'BUY') {
@@ -241,10 +258,17 @@ export async function closePosition(
   // Update or close position
   if (remainingQuantity > 0) {
     // Partially close position
+    const remainingUnrealizedPnL =
+      existingPosition.side === 'BUY'
+        ? (currentPrice - entryPrice) * remainingQuantity
+        : (entryPrice - currentPrice) * remainingQuantity;
+
     await db
       .update(positions)
       .set({
         quantity: remainingQuantity.toString(),
+        current_price: currentPrice.toString(),
+        unrealized_pnl: remainingUnrealizedPnL.toString(),
         updated_at: new Date(),
       })
       .where(eq(positions.id, existingPosition.id));
@@ -253,7 +277,10 @@ export async function closePosition(
     await db
       .update(positions)
       .set({
+        quantity: '0',
         is_open: false,
+        current_price: currentPrice.toString(),
+        unrealized_pnl: '0',
         updated_at: new Date(),
       })
       .where(eq(positions.id, existingPosition.id));
@@ -262,12 +289,13 @@ export async function closePosition(
   // Calculate trade value for closing
   const oppositeSide = existingPosition.side === 'BUY' ? 'SELL' : 'BUY';
   const tradeValue = oppositeSide === 'BUY' ? currentPrice * closingQuantity : -currentPrice * closingQuantity;
+  const marginRelease = (entryPrice * closingQuantity) / positionLeverage;
 
   // Update account balance
   const currentBalance = parseFloat(account.current_balance);
   const totalPnL = parseFloat(account.total_pnl);
   
-  const newBalance = currentBalance + tradeValue + realizedPnL;
+  const newBalance = currentBalance + marginRelease + realizedPnL;
   const newTotalPnL = totalPnL + realizedPnL;
 
   await db
@@ -295,6 +323,11 @@ export async function closePosition(
       realized_pnl: realizedPnL.toString(),
       trade_value: tradeValue.toString(),
       position_id: existingPosition.id,
+      metadata: {
+        leverage: positionLeverage,
+        margin_released: marginRelease,
+        closed_quantity: closingQuantity,
+      } as any,
     })
     .returning();
 
@@ -316,14 +349,29 @@ export async function getAccountMetrics(accountId: string) {
 
   const initialBalance = parseFloat(account.initial_balance);
   const currentBalance = parseFloat(account.current_balance);
-  const totalPnL = parseFloat(account.total_pnl);
+  // Aggregate position exposure, unrealized PnL, and reserved margin
+  const { notional: cryptoValue, unrealized: unrealizedPnL, margin: reservedMargin } = openPositions.reduce(
+    (totals, pos) => {
+      const quantity = parseFloat(pos.quantity);
+      const currentPrice = parseFloat(pos.current_price);
+      const entryPrice = parseFloat(pos.entry_price);
+      const direction = pos.side === 'SELL' ? -1 : 1;
+      const leverage = pos.leverage || 1;
 
-  // Calculate unrealized PnL from open positions
-  const unrealizedPnL = openPositions.reduce((sum, pos) => {
-    return sum + parseFloat(pos.unrealized_pnl);
-  }, 0);
+      const positionNotional = currentPrice * quantity * direction;
+      const positionUnrealized = (currentPrice - entryPrice) * quantity * direction;
+      const positionMargin = (entryPrice * quantity) / leverage;
 
-  const accountValue = currentBalance + unrealizedPnL;
+      return {
+        notional: totals.notional + positionNotional,
+        unrealized: totals.unrealized + positionUnrealized,
+        margin: totals.margin + positionMargin,
+      };
+    },
+    { notional: 0, unrealized: 0, margin: 0 }
+  );
+
+  const accountValue = currentBalance + reservedMargin + unrealizedPnL;
   const totalReturnPercent = initialBalance > 0 
     ? ((accountValue - initialBalance) / initialBalance) * 100 
     : 0;
@@ -361,7 +409,7 @@ export async function getAccountMetrics(accountId: string) {
     .update(accounts)
     .set({
       account_value: accountValue.toString(),
-      crypto_value: unrealizedPnL.toString(),
+      crypto_value: cryptoValue.toString(),
       total_return_percent: totalReturnPercent.toString(),
       sharpe_ratio: sharpeRatio !== null ? sharpeRatio.toString() : null,
       updated_at: new Date(),
@@ -370,11 +418,13 @@ export async function getAccountMetrics(accountId: string) {
 
   return {
     availableCash: currentBalance,
-    cryptoValue: unrealizedPnL,
+    cryptoValue,
     accountValue,
     positions: openPositions,
     totalReturnPercent,
     sharpeRatio: sharpeRatio || 0,
+    unrealizedPnL,
+    reservedMargin,
     initialBalance,
   };
 }
