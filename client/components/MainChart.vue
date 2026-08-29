@@ -114,26 +114,52 @@ const chartSeries = computed(() => {
 // Generate category labels for x-axis
 const xAxisCategories = computed(() => chartLayout.value.categories)
 
+const Y_TARGET_TICKS = 6
+
+const niceStep = (raw: number): number => {
+  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)))
+  const fraction = raw / magnitude
+  const snapped = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 2.5 ? 2.5 : fraction <= 5 ? 5 : 10
+  return snapped * magnitude
+}
+
+const yAxisScale = computed(() => {
+  let lowest = Infinity
+  let highest = -Infinity
+
+  for (const av of props.accountValues) {
+    for (const value of Object.values(av.models)) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) continue
+      if (value < lowest) lowest = value
+      if (value > highest) highest = value
+    }
+  }
+
+  if (lowest > highest) {
+    return { min: undefined, max: undefined, tickAmount: Y_TARGET_TICKS, decimals: 0 }
+  }
+
+  const band = Math.max(highest - lowest, Math.abs(highest) * 0.005, 0.01)
+  const step = niceStep(band / Y_TARGET_TICKS)
+  const padding = band * 0.05
+
+  const min = Math.floor((lowest - padding) / step) * step
+  const max = Math.ceil((highest + padding) / step) * step
+  const decimals = step >= 1
+    ? (Number.isInteger(step) ? 0 : 1)
+    : Math.min(8, Math.ceil(-Math.log10(step)))
+
+  return {
+    min: Number(min.toFixed(decimals)),
+    max: Number(max.toFixed(decimals)),
+    tickAmount: Math.max(2, Math.round((max - min) / step)),
+    decimals,
+  }
+})
+
 // Chart options
 const chartOptions = computed(() => {
-  
-  const allValues = props.accountValues.flatMap(av => 
-    Object.values(av.models)
-  ).filter(v => v != null)
-  
-  const hasData = allValues.length > 0
-  const maxValue = hasData ? Math.max(...allValues) : 0
-  const minValue = hasData ? Math.min(...allValues) : 0
-  
-  // Add 5% padding to top and bottom for better visibility
-  const range = maxValue - minValue
-  const padding = range > 0 ? range * 0.05 : 50 // Minimum 50 padding if range is tiny
-  
-  const yAxisMax = hasData ? Math.ceil((maxValue + padding) / 100) * 100 : 15000
-  const yAxisMin = hasData ? Math.floor((minValue - padding) / 100) * 100 : 0
-  
-  // Calculate reasonable tick amount based on range
-  const tickAmount = Math.min(10, Math.max(5, Math.ceil(range / 500)))
+  const { min: yAxisMin, max: yAxisMax, tickAmount, decimals } = yAxisScale.value
 
   return {
     chart: {
@@ -226,10 +252,10 @@ const chartOptions = computed(() => {
         },
         offsetX: -15,
         offsetY: 0,
-        formatter: (val: number) => {
-          if (val === 0) return '$0'
-          return `$${val.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-        },
+        formatter: (val: number) => `$${val.toLocaleString('en-US', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        })}`,
       },
       axisBorder: {
         show: true,
