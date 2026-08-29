@@ -1,16 +1,13 @@
 {
   "name": "bitnerve-server",
   "version": "1.0.0",
-  "description": "Backend server for BitNerve AI Trading Bot",
+  "description": "MCP server exposing BitNerve trading tools",
   "license": "MIT",
   "author": "Arjun Krishna",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "src/mcp/index.ts",
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun --watch src/index.ts",
     "mcp": "bun run src/mcp/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -18,14 +15,9 @@
     "db:sync": "bun run src/scripts/sync-to-neon.ts"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^2.0.0",
-    "@ai-sdk/provider-utils": "^3.0.16",
-    "@google/genai": "^1.29.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@noble/ed25519": "^2.3.0",
     "@noble/hashes": "^1.8.0",
-    "@openrouter/ai-sdk-provider": "^1.2.0",
-    "ai": "^5.0.86",
     "axios": "^1.13.1",
     "drizzle-orm": "^0.44.7",
     "postgres": "^3.4.7",

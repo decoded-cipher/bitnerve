@@ -11,7 +11,7 @@ import {
   getOpenPositions,
 } from '../lib/exchange/helper';
 import { round } from '../lib/utils';
-import { describeError } from '../lib/llm/errors';
+import { describeError } from '../lib/errors';
 import { snapshot, snapshotAll, screenSymbol, renderScreen, renderDetail } from './market';
 import {
   getAccountId,

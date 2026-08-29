@@ -1,43 +1,24 @@
 FROM oven/bun:1-alpine AS base
 
-# Install dependencies only
 FROM base AS deps
 WORKDIR /app
-COPY package.json bun.lockb ./
-RUN bun install --frozen-lockfile
-
-# Build stage
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lockb tsconfig.json ./
-COPY src ./src
-
-# Build the TypeScript code
-RUN bun run build
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
-# Environment variables will be provided via docker-compose
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
-
-# Copy package files and install only production dependencies
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production && \
     bun pm cache rm
 
-# Copy only built files
-COPY --from=builder /app/dist ./dist
+FROM base AS runner
+WORKDIR /app
 
-# Create non-root user
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json bun.lock tsconfig.json ./
+COPY src ./src
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S bunjs -u 1001 && \
     chown -R bunjs:nodejs /app
 USER bunjs
 
-# Run the application
-CMD ["bun", "run", "dist/index.js"]
-
+CMD ["bun", "run", "src/mcp/index.ts"]

@@ -37,49 +37,7 @@ export type PerpetualFuturesSymbol = 'BTCUSDT' | 'ETHUSDT' | 'SOLUSDT' | 'BNBUSD
 export const FUTURES_EXCHANGE = 'EXCHANGE_2';
 
 
-
-
-
-export interface AccountSummary {
-  balance: any;
-  portfolio: any;
-  positions: any;
-}
-
-export interface AccountMetrics {
-  availableCash: number;
-  cryptoValue: number;
-  accountValue: number;
-  positions: any[];
-}
-
-export interface PerformanceMetrics {
-  initialBalance: number;
-  totalReturnPercent: number;
-  sharpeRatio: number;
-}
-
-export interface AccountData {
-  accountSummary: AccountSummary;
-  closedOrders: any[];
-}
-
-export interface SessionState {
-  startTime: number;
-  invocationCount: number;
-  initialBalance?: number;
-}
-
 export interface MarketData {
   symbol: string;
   data: any;
-}
-
-
-export interface Metrics {
-  totalReturnPercent: number;
-  availableCash: number;
-  accountValue: number;
-  positions: any;
-  sharpeRatio?: number;
 }
