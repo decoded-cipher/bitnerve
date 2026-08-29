@@ -1,5 +1,5 @@
 {
-  "constraintsSyncedAt": "2026-08-29T05:34:49.178Z",
+  "constraintsSyncedAt": "2026-08-29T17:42:11.600Z",
   "symbols": [
     {
       "symbol": "BTCUSDT",
@@ -53,54 +53,37 @@
       }
     },
     {
-      "symbol": "BNBUSDT",
-      "base": "BNB",
-      "name": "BNB",
+      "symbol": "HYPEUSDT",
+      "base": "HYPE",
+      "name": "Hyperliquid",
       "constraints": {
-        "minQuantity": 0.02,
+        "minQuantity": 0.1,
         "quantityStep": 0.01,
         "quantityPrecision": 2,
-        "pricePrecision": 2,
+        "pricePrecision": 3,
+        "minLeverage": 1,
+        "maxLeverage": 64,
+        "maxQuantity": 14700,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.77
+      }
+    },
+    {
+      "symbol": "LINKUSDT",
+      "base": "LINK",
+      "name": "Chainlink",
+      "constraints": {
+        "minQuantity": 0.7,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 3,
         "minLeverage": 1,
         "maxLeverage": 60,
-        "maxQuantity": 370,
+        "maxQuantity": 15000,
         "takerFeeRate": 0.00065,
         "makerFeeRate": 0.00024,
         "maintMarginRate": 0.82
-      }
-    },
-    {
-      "symbol": "XRPUSDT",
-      "base": "XRP",
-      "name": "XRP",
-      "constraints": {
-        "minQuantity": 5.5,
-        "quantityStep": 0.1,
-        "quantityPrecision": 1,
-        "pricePrecision": 4,
-        "minLeverage": 1,
-        "maxLeverage": 86,
-        "maxQuantity": 1500000,
-        "takerFeeRate": 0.00065,
-        "makerFeeRate": 0.00024,
-        "maintMarginRate": 0.57
-      }
-    },
-    {
-      "symbol": "DOGEUSDT",
-      "base": "DOGE",
-      "name": "Dogecoin",
-      "constraints": {
-        "minQuantity": 89,
-        "quantityStep": 1,
-        "quantityPrecision": 0,
-        "pricePrecision": 5,
-        "minLeverage": 1,
-        "maxLeverage": 57,
-        "maxQuantity": 5991100,
-        "takerFeeRate": 0.00065,
-        "makerFeeRate": 0.00024,
-        "maintMarginRate": 0.86
       }
     }
   ]
