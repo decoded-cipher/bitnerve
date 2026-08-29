@@ -39,7 +39,7 @@ server.registerTool(
   {
     title: 'Open position',
     description:
-      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Quantity must meet the exchange minimum and is snapped down to its step size; leverage is capped at the exchange maximum for that symbol. Margin is deducted as notional / leverage and the call is rejected if free cash cannot cover it. One position per symbol.',
+      'Open a BUY (long) or SELL (short) perpetual futures position at the current mark. Quantity must meet the exchange minimum and is snapped down to its step size; leverage is capped at the exchange maximum for that symbol. Margin is deducted as notional / leverage, plus a taker fee on the notional, and the call is rejected if free cash cannot cover both. One position per symbol.',
     inputSchema: z.object({
       symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
       side: z.enum(['BUY', 'SELL']),
@@ -90,7 +90,7 @@ server.registerTool(
         payload: result,
         body: [
           `FILLED ${side} ${placeable} ${symbol} @ ${round(data.currentPrice, 4)}`,
-          `leverage ${filledLev}x  notional ${round(notional, 2)}  margin ${round(notional / filledLev, 2)}`,
+          `leverage ${filledLev}x  notional ${round(notional, 2)}  margin ${round(notional / filledLev, 2)}  taker fee ${round(result.entryFee, 2)}`,
           ...notes,
           `position ${result.position.id}`,
         ].join('\n'),
@@ -103,7 +103,7 @@ server.registerTool(
   {
     title: 'Close position',
     description:
-      'Close an open position fully, or partially by passing quantity. Releases the proportional margin and realises PnL at the current mark.',
+      'Close an open position fully, or partially by passing quantity. Releases the proportional margin and realises PnL at the current mark, net of the taker fee on both the entry and the exit.',
     inputSchema: z.object({
       symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
       quantity: z.number().positive().optional(),
@@ -127,7 +127,7 @@ server.registerTool(
         payload: result,
         body: [
           `CLOSED ${round(result.closedQuantity, 6)} ${symbol} @ ${round(parseFloat(result.order.filled_price ?? '0'), 4)}`,
-          `realised pnl ${round(result.realizedPnL, 2)}`,
+          `gross ${round(result.grossPnL, 2)}  fees ${round(result.fees, 2)}  net realised ${round(result.realizedPnL, 2)}`,
         ].join('\n'),
       };
     })

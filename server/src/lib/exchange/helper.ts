@@ -2,6 +2,7 @@ import { db, accounts, positions, orders, accountSnapshots, marketPrices } from 
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
 import { TRADING_PROVIDER, TRADING_MODEL } from '../../config/model';
+import { getInstrument } from './instruments';
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -145,6 +146,8 @@ export async function createPosition(
     throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
 
+  const { takerFeeRate } = await getInstrument(symbol);
+
   return db.transaction(async (tx) => {
   const [account] = await tx
     .select()
@@ -185,16 +188,17 @@ export async function createPosition(
   const notional = price * quantity;
   const tradeValue = side === 'BUY' ? notional : -notional;
   const marginUsed = Math.abs(notional) / normalizedLeverage;
+  const entryFee = Math.abs(notional) * takerFeeRate;
   
   // Update account balance
   const currentBalance = parseFloat(account.current_balance);
-  const newBalance = currentBalance - marginUsed;
+  const newBalance = currentBalance - marginUsed - entryFee;
 
   if (!Number.isFinite(newBalance)) {
     throw new Error('Invalid balance calculation when creating position');
   }
   if (newBalance < 0) {
-    throw new Error('Insufficient balance to satisfy margin requirement for this position');
+    throw new Error(`Insufficient balance: needs ${(marginUsed + entryFee).toFixed(2)} (margin ${marginUsed.toFixed(2)} + taker fee ${entryFee.toFixed(2)}), free cash ${currentBalance.toFixed(2)}`);
   }
 
   await tx
@@ -223,6 +227,7 @@ export async function createPosition(
       metadata: {
         leverage: normalizedLeverage,
         margin_used: marginUsed,
+        entry_fee: entryFee,
       } as any,
     })
     .returning();
@@ -233,6 +238,7 @@ export async function createPosition(
   return {
     position: newPosition,
     order,
+    entryFee,
   };
   });
 }
@@ -249,6 +255,8 @@ export async function closePosition(
   if (!isSupportedSymbol(symbol)) {
     throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
   }
+
+  const { takerFeeRate } = await getInstrument(symbol);
 
   return db.transaction(async (tx) => {
   const [account] = await tx
@@ -282,12 +290,16 @@ export async function closePosition(
   const currentPrice = exitPrice;
   const positionLeverage = existingPosition.leverage || 1;
   
-  let realizedPnL = 0;
+  let grossPnL = 0;
   if (existingPosition.side === 'BUY') {
-    realizedPnL = (currentPrice - entryPrice) * closingQuantity;
+    grossPnL = (currentPrice - entryPrice) * closingQuantity;
   } else if (existingPosition.side === 'SELL') {
-    realizedPnL = (entryPrice - currentPrice) * closingQuantity;
+    grossPnL = (entryPrice - currentPrice) * closingQuantity;
   }
+
+  const entryFee = entryPrice * closingQuantity * takerFeeRate;
+  const exitFee = currentPrice * closingQuantity * takerFeeRate;
+  const realizedPnL = grossPnL - entryFee - exitFee;
 
   // Update or close position
   if (remainingQuantity > 0) {
@@ -329,7 +341,7 @@ export async function closePosition(
   const currentBalance = parseFloat(account.current_balance);
   const totalPnL = parseFloat(account.total_pnl);
   
-  const newBalance = currentBalance + marginRelease + realizedPnL;
+  const newBalance = currentBalance + marginRelease + grossPnL - exitFee;
   const newTotalPnL = totalPnL + realizedPnL;
 
   await tx
@@ -361,6 +373,9 @@ export async function closePosition(
         leverage: positionLeverage,
         margin_released: marginRelease,
         closed_quantity: closingQuantity,
+        gross_pnl: grossPnL,
+        entry_fee: entryFee,
+        exit_fee: exitFee,
       } as any,
     })
     .returning();
@@ -370,6 +385,8 @@ export async function closePosition(
 
   return {
     realizedPnL,
+    grossPnL,
+    fees: entryFee + exitFee,
     closedQuantity: closingQuantity,
     order,
   };
