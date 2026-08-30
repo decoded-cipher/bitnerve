@@ -33,6 +33,8 @@ export interface CreateFuturesOrderParams {
 // Exchange identifier for CoinSwitch futures
 export const FUTURES_EXCHANGE = 'EXCHANGE_2';
 
+export const FUTURES_EXCHANGES = ['EXCHANGE_2', 'EXCHANGE_1'];
+
 
 export interface MarketData {
   symbol: string;

@@ -66,10 +66,10 @@ export function screenSymbol(symbol: string, data: Snapshot): SymbolScreen {
 }
 
 export function renderScreen(rows: SymbolScreen[]): string {
-  const header = 'SYMBOL   PRICE        EMA20-50/4H  MACD/4H   RSI14/4H  MACD/5M   RSI7/5M  ATR3/14  VOL\u00d7   FUNDING';
+  const header = 'SYMBOL     PRICE        EMA20-50/4H  MACD/4H   RSI14/4H  MACD/5M   RSI7/5M  ATR3/14  VOL\u00d7   FUNDING';
   const lines = rows.map(r =>
     [
-      r.symbol.padEnd(8),
+      r.symbol.padEnd(10),
       String(r.price).padEnd(12),
       `${r.trendGapPct > 0 ? '+' : ''}${r.trendGapPct}%`.padEnd(12),
       String(r.macdH4).padEnd(9),

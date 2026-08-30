@@ -1,6 +1,5 @@
 import { getFuturesInstrumentInfo } from './api';
-import { FUTURES_EXCHANGE } from '../../types';
-import { getSymbolEntry } from '../../config/symbols';
+import { getSymbolEntry, getSymbolExchange } from '../../config/symbols';
 
 export interface Instrument {
   symbol: string;
@@ -37,12 +36,13 @@ const num = (value: unknown, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-let cache: Promise<Map<string, Instrument>> | null = null;
+const caches = new Map<string, Promise<Map<string, Instrument>>>();
 
-function loadInstruments(): Promise<Map<string, Instrument>> {
+function loadInstruments(exchange: string): Promise<Map<string, Instrument>> {
+  let cache = caches.get(exchange);
   if (!cache) {
     cache = (async () => {
-      const response = await getFuturesInstrumentInfo({ exchange: FUTURES_EXCHANGE });
+      const response = await getFuturesInstrumentInfo({ exchange });
       const raw = (response?.data ?? {}) as Record<string, Record<string, unknown>>;
       const map = new Map<string, Instrument>();
 
@@ -64,9 +64,10 @@ function loadInstruments(): Promise<Map<string, Instrument>> {
 
       return map;
     })().catch(error => {
-      cache = null;
+      caches.delete(exchange);
       throw error;
     });
+    caches.set(exchange, cache);
   }
 
   return cache;
@@ -74,7 +75,7 @@ function loadInstruments(): Promise<Map<string, Instrument>> {
 
 export async function getInstrument(symbol: string): Promise<Instrument> {
   try {
-    const found = (await loadInstruments()).get(symbol.toUpperCase());
+    const found = (await loadInstruments(getSymbolExchange(symbol))).get(symbol.toUpperCase());
     if (found) return found;
   } catch {
     // ignore and fall back

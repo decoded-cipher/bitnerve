@@ -1,8 +1,9 @@
 
 import { getKlinesData, getFuturesTicker } from './api';
-import { FUTURES_EXCHANGE, CandlesParams, MarketData } from '../../types';
+import { CandlesParams, MarketData } from '../../types';
 import { calcMidPrice, calcEMA, calcMACD, calcRSI, calcATR, calcVolume } from './indicators';
 import { TRADING_SYMBOLS } from '../../config/exchange';
+import { getSymbolExchange } from '../../config/symbols';
 
 
 
@@ -13,6 +14,7 @@ async function fetchIndicators(duration: number, symbol: string) {
     end_time: Date.now(),
     symbol: symbol,
     interval: duration,
+    exchange: getSymbolExchange(symbol),
   } as CandlesParams;
 
   const candlesData = await getKlinesData(params);
@@ -46,13 +48,11 @@ async function fetchIndicators(duration: number, symbol: string) {
 // Fetch Open Interest and Funding Rate for a symbol
 async function fetchOIAndFunding(symbol: string) {
   try {
-    const tickerData = await getFuturesTicker({
-      symbol,
-      exchange: FUTURES_EXCHANGE,
-    });
-    
+    const exchange = getSymbolExchange(symbol);
+    const tickerData = await getFuturesTicker({ symbol, exchange });
+
     // Handle different possible response structures
-    const data = tickerData?.data?.[FUTURES_EXCHANGE] || tickerData;
+    const data = tickerData?.data?.[exchange] || tickerData;
     // console.log("fetchOIAndFunding:", data);
     
     return {

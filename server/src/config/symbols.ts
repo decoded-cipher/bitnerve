@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { FUTURES_EXCHANGE } from '../types';
 
 export interface SymbolConstraints {
   minQuantity: number;
@@ -18,6 +19,7 @@ export interface SymbolEntry {
   symbol: string;
   base: string;
   name: string;
+  exchange: string;
   constraints: SymbolConstraints;
 }
 
@@ -45,4 +47,8 @@ const bySymbol = new Map(TRACKED_SYMBOLS.map(entry => [entry.symbol.toUpperCase(
 
 export function getSymbolEntry(symbol: string): SymbolEntry | undefined {
   return bySymbol.get(symbol.toUpperCase());
+}
+
+export function getSymbolExchange(symbol: string): string {
+  return getSymbolEntry(symbol)?.exchange || FUTURES_EXCHANGE;
 }

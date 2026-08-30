@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '../config/database/schema';
 import { connectionString } from '../config/database/index';
@@ -65,6 +65,36 @@ async function syncTable(
   return syncedCount;
 }
 
+async function syncMarketPrices(
+  localDb: ReturnType<typeof drizzle>,
+  neonDb: ReturnType<typeof drizzle>
+): Promise<number> {
+  console.log('Syncing market_prices...');
+
+  const rows = await localDb.select().from(schema.marketPrices);
+  console.log(`Found ${rows.length} records in local database`);
+
+  if (rows.length === 0) {
+    console.log('No data to sync for market_prices');
+    return 0;
+  }
+
+  await neonDb
+    .insert(schema.marketPrices)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: schema.marketPrices.symbol,
+      set: {
+        price: sql`excluded.price`,
+        sort_order: sql`excluded.sort_order`,
+        updated_at: sql`excluded.updated_at`,
+      },
+    });
+
+  console.log(`Successfully synced ${rows.length} records to Neon\n`);
+  return rows.length;
+}
+
 async function main() {
   console.log('Starting database sync from Local DB to Neon DB...\n');
   console.log('Connecting to databases...');
@@ -85,6 +115,7 @@ async function main() {
     await syncTable(localDb, neonDb, schema.positions, 'positions');
     await syncTable(localDb, neonDb, schema.orders, 'orders');
     await syncTable(localDb, neonDb, schema.accountSnapshots, 'account_snapshots');
+    await syncMarketPrices(localDb, neonDb);
 
     console.log('Database sync completed successfully!');
   } catch (error) {

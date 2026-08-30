@@ -17,7 +17,7 @@ Cycles run every 15 minutes while the 4h series updates far slower, so most cycl
 - Total open risk **6–10%**. You cannot add to an open position — `create_position` refuses and there is no update tool — so size correctly on the first fill. Raising size later means closing and reopening at a full round trip, worth it only for a large increase.
 - Leverage 3–6x ordinary, 6–12x strong. Keep total margin under about 60% of equity.
 - **Concentrate.** Your top-ranked signal is your largest position by risk, and the book's net direction must match your ranking — never net short while your best signal is a long.
-- **Every round trip costs ~0.13% of notional**, charged whether you are right or wrong. Moves of 0.1–0.3% are noise you cannot afford to trade.
+- **Every round trip costs twice the taker fee listed in that symbol's exchange constraints**, charged whether you are right or wrong — 0.13% of notional on the majors but 0.19% on smaller listings, so check it per symbol rather than assuming. Moves smaller than a few multiples of that are noise you cannot afford to trade.
 - `create_position` enforces minimum quantity, step size and maximum leverage, and rejects the call if free cash cannot cover margin plus fee — size down and retry rather than dropping the idea.
 
 ## Acting

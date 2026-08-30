@@ -4,6 +4,7 @@ import { sign, etc } from '@noble/ed25519';
 import { sha512 } from '@noble/hashes/sha2';
 import { concatBytes } from '@noble/hashes/utils';
 import type { CandlesParams, BaseApiParams, CreateFuturesOrderParams } from '../../types';
+import { FUTURES_EXCHANGE } from '../../types';
 
 const BASE_URL = process.env.COINSWITCH_BASE_URL;
 const SECRET_KEY = process.env.COINSWITCH_SECRET_KEY!;
@@ -84,7 +85,7 @@ export async function pingApi() {
 
 // Fetch klines data from CoinSwitch API
 export async function getKlinesData(params: CandlesParams) {
-  const response = await authRequest('/trade/api/v2/futures/klines', 'GET', { ...params, exchange: 'EXCHANGE_2' });
+  const response = await authRequest('/trade/api/v2/futures/klines', 'GET', { exchange: FUTURES_EXCHANGE, ...params });
   const candles = response.data;
   if (!Array.isArray(candles)) return candles;
   return [...candles].sort((a, b) => Number(a.start_time) - Number(b.start_time));
