@@ -3,7 +3,7 @@ import { asc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
-    const db = getDb()
+    const db = getDb(event)
 
     const rows = await db
       .select()

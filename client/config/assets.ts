@@ -12,6 +12,9 @@ import xrpIcon from '~/assets/icons/coin/xrp.svg'
 import dogeIcon from '~/assets/icons/coin/doge.svg'
 import hypeIcon from '~/assets/icons/coin/hype.png'
 import linkIcon from '~/assets/icons/coin/link.png'
+import zecIcon from '~/assets/icons/coin/zec.svg'
+import promIcon from '~/assets/icons/coin/prom.png'
+import fourIcon from '~/assets/icons/coin/4.jpg'
 
 // Import model icons
 import groqIcon from '~/assets/icons/model/groq.webp'
@@ -79,6 +82,21 @@ export const COINS: Record<string, CoinConfig> = {
     symbol: 'LINK',
     fullName: 'Chainlink',
     icon: linkIcon,
+  },
+  ZEC: {
+    symbol: 'ZEC',
+    fullName: 'Zcash',
+    icon: zecIcon,
+  },
+  PROM: {
+    symbol: 'PROM',
+    fullName: 'Prom',
+    icon: promIcon,
+  },
+  '4': {
+    symbol: '4',
+    fullName: '4',
+    icon: fourIcon,
   },
 }
 

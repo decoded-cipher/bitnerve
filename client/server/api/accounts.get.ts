@@ -2,7 +2,7 @@ import { getDb, accounts } from '~/server/utils/db'
 
 export default defineEventHandler(async (event) => {
   try {
-    const db = getDb()
+    const db = getDb(event)
     const allAccounts = await db.select().from(accounts).orderBy(accounts.created_at)
     
     // Use stored metrics from the database

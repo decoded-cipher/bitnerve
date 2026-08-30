@@ -3,7 +3,7 @@ import { formatModelName } from '~/config/model'
 
 export default defineEventHandler(async (event) => {
   try {
-    const db = getDb()
+    const db = getDb(event)
     
     // Get all accounts
     const allAccounts = await db

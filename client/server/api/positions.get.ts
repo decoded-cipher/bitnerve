@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
-    const db = getDb()
+    const db = getDb(event)
     
     // Get all open positions with their accounts
     const allPositions = await db

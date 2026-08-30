@@ -4,7 +4,7 @@ import { formatModelName } from '~/config/model'
 
 export default defineEventHandler(async (event) => {
   try {
-    const db = getDb()
+    const db = getDb(event)
     
     // Get pagination parameters from query
     const query = getQuery(event)
