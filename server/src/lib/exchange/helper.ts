@@ -186,7 +186,7 @@ export async function createPosition(
   const existingPosition = openPositions.find(p => p.symbol === symbol);
   
   if (existingPosition) {
-    throw new Error(`Position already exists for ${symbol}. Use updatePosition instead.`);
+    throw new Error(`Position already exists for ${symbol}. Size cannot be increased; close it fully or partially first.`);
   }
 
   const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.max(1, Math.floor(leverage)) : 1;

@@ -118,7 +118,7 @@ launchctl load ~/Library/LaunchAgents/com.bitnerve.cycle.plist
 tail -f .cycle.log
 ```
 
-`StartInterval` is in seconds. **Be deliberate about it** — a cycle takes 1.5–3 minutes and consumes a meaningful slice of a subscription's limits, so 288 runs a day adds up fast. Start wide and tighten.
+`StartInterval` is in seconds, and it defaults to 15 minutes. **Be deliberate about it** — the dominant timeframe is 4h, so most cycles see an unchanged 4h series and exist to manage open positions rather than to open new ones. Each cycle also consumes a slice of a subscription's limits, so 96 runs a day adds up.
 
 
 ## 🗂 Project Layout
