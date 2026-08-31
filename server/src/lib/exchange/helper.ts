@@ -917,16 +917,22 @@ export async function enforceExits(
             }
             await fire(order.id);
           } else if (order.kind === 'MOVE_STOP') {
-            stop = parseFloat(order.new_stop ?? '0');
-            stopDirty = true;
+            const live = await getOpenPositions(accountId);
+            const currentEntry = parseFloat(live.find(p => p.id === position.id)?.entry_price ?? position.entry_price);
+            const target = Number.isFinite(currentEntry) ? currentEntry : parseFloat(order.new_stop ?? '0');
+            const improves = stop === null || (isLong ? target > stop : target < stop);
+            if (improves) {
+              stop = target;
+              stopDirty = true;
+            }
             events.push({
               symbol: position.symbol,
               side: position.side,
               kind: 'MOVE_STOP',
-              label: order.label,
+              label: improves ? order.label : `${order.label} (kept tighter stop)`,
               at: time,
               triggerPrice: trigger,
-              newStop: stop,
+              newStop: stop ?? target,
             });
             await fire(order.id);
           } else if (order.kind === 'TRAIL') {
