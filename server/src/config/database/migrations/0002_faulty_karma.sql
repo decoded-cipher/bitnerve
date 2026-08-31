@@ -1,0 +1,1 @@
+ALTER TABLE "positions" ADD COLUMN "stop_price" numeric(20, 8);

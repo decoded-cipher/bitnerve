@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:sync": "bun run src/scripts/sync-to-neon.ts"
+    "db:sync": "bun run src/scripts/sync-to-neon.ts",
+    "watch": "bun run src/scripts/watch.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",

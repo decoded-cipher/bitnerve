@@ -15,16 +15,50 @@ export function readLessons(): string[] {
   }
 }
 
-export function addLesson(lesson: string): { kept: string[]; dropped: number } {
+function write(lessons: string[]): void {
+  writeFileSync(LESSONS_PATH, lessons.map(line => `- ${line}`).join('\n') + '\n');
+}
+
+function findIndex(lessons: string[], needle: string): number {
+  const trimmed = needle.trim();
+  if (!trimmed) return -1;
+  const exact = lessons.findIndex(line => line.startsWith(trimmed));
+  if (exact !== -1) return exact;
+  const lowered = trimmed.toLowerCase();
+  return lessons.findIndex(line => line.toLowerCase().includes(lowered));
+}
+
+export function addLesson(
+  lesson: string,
+  replaces?: string,
+): { kept: string[]; dropped: number; replaced: string | null } {
   const cleaned = lesson.replace(/\s+/g, ' ').trim();
   if (!cleaned) throw new Error('A lesson cannot be empty');
   if (cleaned.length > 400) throw new Error(`A lesson must be 400 characters or fewer (got ${cleaned.length})`);
 
   const existing = readLessons();
+  let replaced: string | null = null;
+
+  if (replaces) {
+    const index = findIndex(existing, replaces);
+    if (index === -1) throw new Error(`No existing lesson matches "${replaces}" — quote its timestamp or a distinctive phrase`);
+    replaced = existing[index];
+    existing.splice(index, 1);
+  }
+
   const stamped = `${new Date().toISOString().slice(0, 16).replace('T', ' ')}  ${cleaned}`;
   const all = [...existing, stamped];
   const kept = all.slice(-MAX_LESSONS);
 
-  writeFileSync(LESSONS_PATH, kept.map(line => `- ${line}`).join('\n') + '\n');
-  return { kept, dropped: all.length - kept.length };
+  write(kept);
+  return { kept, dropped: all.length - kept.length, replaced };
+}
+
+export function retireLesson(target: string): { kept: string[]; retired: string } {
+  const existing = readLessons();
+  const index = findIndex(existing, target);
+  if (index === -1) throw new Error(`No existing lesson matches "${target}" — quote its timestamp or a distinctive phrase`);
+  const [retired] = existing.splice(index, 1);
+  write(existing);
+  return { kept: existing, retired };
 }

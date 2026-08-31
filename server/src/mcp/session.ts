@@ -93,16 +93,6 @@ export function currentInvocationId(): Promise<string> {
   return invocationIdPromise;
 }
 
-export async function previousAnalysis(accountId: string): Promise<string | null> {
-  const [row] = await db
-    .select({ text: agentInvocations.chain_of_thought })
-    .from(agentInvocations)
-    .where(and(eq(agentInvocations.account_id, accountId), ne(agentInvocations.chain_of_thought, '')))
-    .orderBy(desc(agentInvocations.created_at))
-    .limit(1);
-  return row?.text?.trim() || null;
-}
-
 export async function recordMarketData(data: unknown): Promise<void> {
   const id = await currentInvocationId();
   await db

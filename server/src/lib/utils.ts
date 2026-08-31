@@ -17,6 +17,20 @@ export function formatArray(arr: number[], maxDisplay: number = 10, precision: n
 }
 
 
+export function sig(value: number, digits: number = 6): number {
+  if (!Number.isFinite(value) || value === 0) return 0;
+  const magnitude = Math.floor(Math.log10(Math.abs(value)));
+  const decimals = Math.max(0, Math.min(12, digits - 1 - magnitude));
+  return Number(value.toFixed(decimals));
+}
+
+
+export function formatSeries(arr: number[], maxDisplay: number = 10, digits: number = 6): string {
+  const displayArr = arr.length > maxDisplay ? arr.slice(-maxDisplay) : arr;
+  return `[${displayArr.map(v => sig(v, digits)).join(', ')}]`;
+}
+
+
 // Round a number to fixed precision
 export function round(value: number, precision: number = 2): number {
   return Number.isFinite(value) ? Number(value.toFixed(precision)) : 0;

@@ -1,5 +1,5 @@
-import { db, accounts, positions, orders, accountSnapshots, marketPrices } from '../../config/database';
-import { eq, and, desc, sql, isNotNull } from 'drizzle-orm';
+import { db, accounts, positions, orders, accountSnapshots, marketPrices, positionOrders } from '../../config/database';
+import { eq, and, gte, desc, sql, isNotNull } from 'drizzle-orm';
 import { isSupportedSymbol, TRADING_SYMBOLS } from '../../config/exchange';
 import { TRADING_PROVIDER, TRADING_MODEL } from '../../config/model';
 import { getInstrument } from './instruments';
@@ -7,6 +7,29 @@ import { getInstrument } from './instruments';
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const MIN_SHARPE_TRADES = 2;
+
+const MAX_DRAWDOWN_FROM_PEAK = Number.parseFloat(process.env.MAX_DRAWDOWN_FROM_PEAK ?? '') || 0.08;
+const DRAWDOWN_PEAK_WINDOW_HOURS = Number.parseFloat(process.env.DRAWDOWN_PEAK_WINDOW_HOURS ?? '') || 12;
+
+async function assertDrawdownAllowsEntry(tx: Executor, account: typeof accounts.$inferSelect): Promise<void> {
+  const equity = parseFloat(account.account_value ?? account.current_balance);
+  if (!Number.isFinite(equity) || equity <= 0) return;
+
+  const since = new Date(Date.now() - DRAWDOWN_PEAK_WINDOW_HOURS * 3_600_000);
+  const [row] = await tx
+    .select({ peak: sql<string | null>`max(${accountSnapshots.account_value})` })
+    .from(accountSnapshots)
+    .where(and(eq(accountSnapshots.account_id, account.id), gte(accountSnapshots.created_at, since)));
+
+  const peak = Math.max(parseFloat(row?.peak ?? '0') || 0, equity);
+  const drawdown = (peak - equity) / peak;
+  if (drawdown > MAX_DRAWDOWN_FROM_PEAK) {
+    throw new Error(
+      `Drawdown guard: equity ${equity.toFixed(2)} is ${(drawdown * 100).toFixed(2)}% below the ${DRAWDOWN_PEAK_WINDOW_HOURS}h peak of ${peak.toFixed(2)}, over the ${(MAX_DRAWDOWN_FROM_PEAK * 100).toFixed(0)}% limit. No new positions until equity recovers or that peak ages out of the window. Managing and closing what you hold is still allowed.`
+    );
+  }
+}
+
 
 function fitNumeric(value: number, precision: number, scale: number): string | null {
   if (!Number.isFinite(value)) return null;
@@ -154,6 +177,18 @@ export async function markPositionsToMarket(
 }
 
 // Create a new position (opening)
+export function assertStopSide(side: 'BUY' | 'SELL', stopPrice: number, mark: number): void {
+  if (!Number.isFinite(stopPrice) || stopPrice <= 0) {
+    throw new Error('A positive stop price is required');
+  }
+  if (side === 'BUY' && stopPrice >= mark) {
+    throw new Error(`A long stop must sit below the mark: stop ${stopPrice} is not below ${mark}`);
+  }
+  if (side === 'SELL' && stopPrice <= mark) {
+    throw new Error(`A short stop must sit above the mark: stop ${stopPrice} is not above ${mark}`);
+  }
+}
+
 export async function createPosition(
   accountId: string,
   symbol: string,
@@ -161,7 +196,8 @@ export async function createPosition(
   quantity: number,
   price: number,
   agentInvocationId?: string,
-  leverage: number = 1
+  leverage: number = 1,
+  stopPrice?: number
 ) {
   // Validate symbol is supported
   if (!isSupportedSymbol(symbol)) {
@@ -189,7 +225,11 @@ export async function createPosition(
     throw new Error(`Position already exists for ${symbol}. Size cannot be increased; close it fully or partially first.`);
   }
 
+  await assertDrawdownAllowsEntry(tx, account);
+
   const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.max(1, Math.floor(leverage)) : 1;
+
+  if (stopPrice !== undefined) assertStopSide(side, stopPrice, price);
 
   const [newPosition] = await tx
     .insert(positions)
@@ -202,6 +242,7 @@ export async function createPosition(
       current_price: price.toString(),
       unrealized_pnl: '0',
       leverage: normalizedLeverage,
+      stop_price: stopPrice !== undefined ? stopPrice.toString() : null,
       is_open: true,
     })
     .returning();
@@ -545,4 +586,382 @@ export async function upsertMarketPrices(
     });
 
   return rows.length;
+}
+
+export async function addToPosition(
+  accountId: string,
+  symbol: string,
+  addQuantity: number,
+  price: number,
+  agentInvocationId?: string
+) {
+  if (!isSupportedSymbol(symbol)) {
+    throw new Error(`Symbol ${symbol} is not supported. Supported symbols are: ${TRADING_SYMBOLS.join(', ')}`);
+  }
+  if (!Number.isFinite(addQuantity) || addQuantity <= 0) {
+    throw new Error('A positive quantity is required to add to a position');
+  }
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error('A positive mark price is required to add to a position');
+  }
+
+  const { takerFeeRate } = await getInstrument(symbol);
+
+  return db.transaction(async (tx) => {
+    const [account] = await tx
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1)
+      .for('update');
+    if (!account) throw new Error('Account not found');
+
+    const openPositions = await getOpenPositions(accountId, tx);
+    const position = openPositions.find(p => p.symbol === symbol);
+    if (!position) throw new Error(`No open position found for ${symbol}`);
+
+    const oldQuantity = parseFloat(position.quantity);
+    const oldEntry = parseFloat(position.entry_price);
+    const leverage = position.leverage || 1;
+
+    const openDirection = position.side === 'SELL' ? -1 : 1;
+    const existingUnrealized = (price - oldEntry) * oldQuantity * openDirection;
+    if (existingUnrealized < 0) {
+      throw new Error(
+        `Cannot add to a losing position: ${symbol} is ${existingUnrealized.toFixed(2)} down at ${price} against an entry of ${oldEntry.toFixed(8).replace(/0+$/, '')}. Adding to a falling position compounds one sized loss into a larger one. Cut it, or hold it at its current size.`
+      );
+    }
+
+    const newQuantity = oldQuantity + addQuantity;
+    const newEntry = (oldQuantity * oldEntry + addQuantity * price) / newQuantity;
+
+    const addedNotional = price * addQuantity;
+    const marginUsed = addedNotional / leverage;
+    const entryFee = addedNotional * takerFeeRate;
+
+    const currentBalance = parseFloat(account.current_balance);
+    const newBalance = currentBalance - marginUsed - entryFee;
+    if (!Number.isFinite(newBalance)) {
+      throw new Error('Invalid balance calculation when adding to position');
+    }
+    if (newBalance < 0) {
+      throw new Error(`Insufficient balance: needs ${(marginUsed + entryFee).toFixed(2)} (margin ${marginUsed.toFixed(2)} + taker fee ${entryFee.toFixed(2)}), free cash ${currentBalance.toFixed(2)}`);
+    }
+
+    const direction = position.side === 'SELL' ? -1 : 1;
+    const unrealizedPnL = (price - newEntry) * newQuantity * direction;
+
+    await tx
+      .update(positions)
+      .set({
+        quantity: newQuantity.toString(),
+        entry_price: newEntry.toString(),
+        current_price: price.toString(),
+        unrealized_pnl: unrealizedPnL.toString(),
+        updated_at: new Date(),
+      })
+      .where(eq(positions.id, position.id));
+
+    await tx
+      .update(accounts)
+      .set({ current_balance: newBalance.toString(), updated_at: new Date() })
+      .where(eq(accounts.id, accountId));
+
+    const tradeValue = position.side === 'BUY' ? addedNotional : -addedNotional;
+
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        account_id: accountId,
+        agent_invocation_id: agentInvocationId,
+        symbol,
+        side: position.side,
+        order_type: 'MARKET',
+        quantity: addQuantity.toString(),
+        price: price.toString(),
+        status: 'FILLED',
+        filled_price: price.toString(),
+        trade_value: tradeValue.toString(),
+        position_id: position.id,
+        metadata: {
+          leverage,
+          margin_used: marginUsed,
+          entry_fee: entryFee,
+          added_to_position: true,
+          quantity_before: oldQuantity,
+          quantity_after: newQuantity,
+          entry_before: oldEntry,
+          entry_after: newEntry,
+        } as any,
+      })
+      .returning();
+
+    await getAccountMetrics(accountId, tx);
+
+    return { order, entryFee, marginUsed, newQuantity, newEntry, previousEntry: oldEntry, leverage };
+  });
+}
+
+export async function setStop(accountId: string, symbol: string, stopPrice: number, mark: number) {
+  const openPositions = await getOpenPositions(accountId);
+  const position = openPositions.find(p => p.symbol === symbol);
+  if (!position) throw new Error(`No open position found for ${symbol}`);
+
+  assertStopSide(position.side as 'BUY' | 'SELL', stopPrice, mark);
+
+  const previous = position.stop_price !== null ? parseFloat(position.stop_price) : null;
+
+  await db
+    .update(positions)
+    .set({ stop_price: stopPrice.toString(), updated_at: new Date() })
+    .where(eq(positions.id, position.id));
+
+  return { previous, stopPrice, side: position.side, entryPrice: parseFloat(position.entry_price) };
+}
+
+export interface StopCandle {
+  start_time: string | number;
+  close_time?: string | number;
+  o: string | number;
+  h: string | number;
+  l: string | number;
+}
+
+export interface ExitEvent {
+  symbol: string;
+  side: string;
+  kind: 'STOP' | 'TAKE_PROFIT' | 'MOVE_STOP' | 'TRAIL';
+  label: string;
+  at: number;
+  triggerPrice: number;
+  fillPrice?: number;
+  quantity?: number;
+  realizedPnL?: number;
+  newStop?: number;
+  gapped?: boolean;
+}
+
+export async function buildExitLadder(
+  accountId: string,
+  positionId: string,
+  side: 'BUY' | 'SELL',
+  entry: number,
+  stop: number,
+  quantity: number,
+  trailDistance: number,
+  quantityStep: number
+): Promise<void> {
+  const risk = Math.abs(entry - stop);
+  if (!(risk > 0)) return;
+
+  const dir = side === 'BUY' ? 1 : -1;
+  const at = (multiple: number) => entry + dir * risk * multiple;
+
+  const snap = (q: number) => (quantityStep > 0 ? Math.floor(q / quantityStep) * quantityStep : q);
+  const third = snap(quantity / 3);
+
+  const rows: Array<typeof positionOrders.$inferInsert> = [];
+
+  if (third > 0) {
+    rows.push({
+      account_id: accountId,
+      position_id: positionId,
+      kind: 'TAKE_PROFIT',
+      label: '+1R',
+      trigger_price: at(1).toString(),
+      quantity: third.toString(),
+    });
+  }
+
+  rows.push({
+    account_id: accountId,
+    position_id: positionId,
+    kind: 'MOVE_STOP',
+    label: '+1.5R',
+    trigger_price: at(1.5).toString(),
+    new_stop: entry.toString(),
+  });
+
+  if (trailDistance > 0) {
+    rows.push({
+      account_id: accountId,
+      position_id: positionId,
+      kind: 'TRAIL',
+      label: '+2R',
+      trigger_price: at(2).toString(),
+      trail_distance: trailDistance.toString(),
+    });
+  }
+
+  await db.insert(positionOrders).values(rows);
+}
+
+export async function getPositionOrders(accountId: string) {
+  return await db
+    .select()
+    .from(positionOrders)
+    .where(and(eq(positionOrders.account_id, accountId), eq(positionOrders.status, 'PENDING')));
+}
+
+export async function enforceExits(
+  accountId: string,
+  candlesBySymbol: Map<string, StopCandle[]>
+): Promise<ExitEvent[]> {
+  const events: ExitEvent[] = [];
+
+  const [lock] = await db.execute(
+    sql`select pg_try_advisory_lock(hashtext(${accountId})) as acquired`
+  ) as unknown as Array<{ acquired: boolean }>;
+  if (!lock?.acquired) return events;
+
+  try {
+    const openPositions = await getOpenPositions(accountId);
+
+    for (const position of openPositions) {
+      const candles = candlesBySymbol.get(position.symbol);
+      if (!candles || candles.length === 0) continue;
+
+      const isLong = position.side === 'BUY';
+      const since = new Date(position.updated_at).getTime();
+      const bars = candles
+        .filter(c => {
+          const end = c.close_time !== undefined ? Number(c.close_time) : Number(c.start_time);
+          return end > since;
+        })
+        .sort((a, b) => Number(a.start_time) - Number(b.start_time));
+      if (bars.length === 0) continue;
+
+      let stop = position.stop_price !== null ? parseFloat(position.stop_price) : null;
+      let stopDirty = false;
+      let trailDistance: number | null = null;
+      let closed = false;
+
+      const pending = await db
+        .select()
+        .from(positionOrders)
+        .where(and(eq(positionOrders.position_id, position.id), eq(positionOrders.status, 'PENDING')));
+      const live = new Map(pending.map(o => [o.id, o]));
+
+      const fire = async (id: string) => {
+        await db
+          .update(positionOrders)
+          .set({ status: 'TRIGGERED', triggered_at: new Date(), updated_at: new Date() })
+          .where(eq(positionOrders.id, id));
+        live.delete(id);
+      };
+
+      for (const bar of bars) {
+        if (closed) break;
+
+        const high = Number(bar.h);
+        const low = Number(bar.l);
+        const open = Number(bar.o);
+        const time = Number(bar.start_time);
+        const reached = isLong ? high : low;
+        const adverse = isLong ? low : high;
+
+        if (stop !== null && (isLong ? adverse <= stop : adverse >= stop)) {
+          const gapped = isLong ? open < stop : open > stop;
+          const fillPrice = gapped ? open : stop;
+          const quantity = parseFloat(
+            (await getOpenPositions(accountId)).find(p => p.id === position.id)?.quantity ?? position.quantity
+          );
+          const result = await closePosition(accountId, position.symbol, fillPrice, undefined);
+          events.push({
+            symbol: position.symbol,
+            side: position.side,
+            kind: 'STOP',
+            label: trailDistance !== null ? 'trailing stop' : 'stop',
+            at: time,
+            triggerPrice: stop,
+            fillPrice,
+            quantity,
+            realizedPnL: result.realizedPnL,
+            gapped,
+          });
+          for (const id of [...live.keys()]) {
+            await db
+              .update(positionOrders)
+              .set({ status: 'CANCELLED', updated_at: new Date() })
+              .where(eq(positionOrders.id, id));
+          }
+          closed = true;
+          stopDirty = false;
+          break;
+        }
+
+        for (const order of [...live.values()]) {
+          const trigger = parseFloat(order.trigger_price);
+          const hit = isLong ? reached >= trigger : reached <= trigger;
+          if (!hit) continue;
+
+          if (order.kind === 'TAKE_PROFIT') {
+            const want = parseFloat(order.quantity ?? '0');
+            const held = parseFloat(
+              (await getOpenPositions(accountId)).find(p => p.id === position.id)?.quantity ?? '0'
+            );
+            const qty = Math.min(want, held);
+            if (qty > 0) {
+              const result = await closePosition(accountId, position.symbol, trigger, qty);
+              events.push({
+                symbol: position.symbol,
+                side: position.side,
+                kind: 'TAKE_PROFIT',
+                label: order.label,
+                at: time,
+                triggerPrice: trigger,
+                fillPrice: trigger,
+                quantity: qty,
+                realizedPnL: result.realizedPnL,
+              });
+            }
+            await fire(order.id);
+          } else if (order.kind === 'MOVE_STOP') {
+            stop = parseFloat(order.new_stop ?? '0');
+            stopDirty = true;
+            events.push({
+              symbol: position.symbol,
+              side: position.side,
+              kind: 'MOVE_STOP',
+              label: order.label,
+              at: time,
+              triggerPrice: trigger,
+              newStop: stop,
+            });
+            await fire(order.id);
+          } else if (order.kind === 'TRAIL') {
+            trailDistance = parseFloat(order.trail_distance ?? '0');
+            events.push({
+              symbol: position.symbol,
+              side: position.side,
+              kind: 'TRAIL',
+              label: order.label,
+              at: time,
+              triggerPrice: trigger,
+            });
+            await fire(order.id);
+          }
+        }
+
+        if (trailDistance !== null && trailDistance > 0) {
+          const candidate = isLong ? high - trailDistance : low + trailDistance;
+          if (stop === null || (isLong ? candidate > stop : candidate < stop)) {
+            stop = candidate;
+            stopDirty = true;
+          }
+        }
+      }
+
+      if (!closed && stopDirty && stop !== null) {
+        await db
+          .update(positions)
+          .set({ stop_price: stop.toString(), updated_at: new Date() })
+          .where(eq(positions.id, position.id));
+      }
+    }
+  } finally {
+    await db.execute(sql`select pg_advisory_unlock(hashtext(${accountId}))`);
+  }
+
+  return events;
 }

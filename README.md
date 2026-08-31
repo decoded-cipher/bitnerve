@@ -41,11 +41,12 @@ claude -p "<brief>"  →  reasons over it and calls back into the MCP server
 
 The brief carries everything the model needs in a single prompt — account state, a comparison table across every tracked symbol, and the full indicator series for each. There is **no scoring, ranking or bias applied in code**: the screen reports measurements, and the model does the judging. That's deliberate, and it's the main design principle here.
 
-Four tools are exposed:
+Five tools are exposed:
 
 | tool | purpose |
 |---|---|
-| `create_position` | open a long or short, with exchange constraints enforced |
+| `create_position` | open a long or short, with exchange constraints enforced, arming a protective stop |
+| `adjust_position` | scale into an open position at the mark, or move its stop |
 | `close_position` | close fully or partially at the live mark |
 | `record_analysis` | persist the cycle's reasoning for the dashboard |
 | `record_lesson` | save a durable observation, carried into every future cycle |
@@ -100,7 +101,7 @@ claude -p "$(cd server && bun run --silent brief)" \
   --mcp-config .mcp.json \
   --strict-mcp-config \
   --model claude-opus-5 \
-  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis mcp__bitnerve__record_lesson" \
+  --allowed-tools "mcp__bitnerve__create_position mcp__bitnerve__adjust_position mcp__bitnerve__close_position mcp__bitnerve__record_analysis mcp__bitnerve__record_lesson" \
   --output-format text
 ```
 

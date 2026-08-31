@@ -26,3 +26,6 @@ logs
 .cycle.stderr.log
 
 server/prompts/lessons.md
+
+.watch.log
+.bitnerve.pids

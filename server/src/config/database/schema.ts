@@ -35,6 +35,7 @@ export const positions = pgTable('positions', {
   current_price: numeric('current_price', { precision: 20, scale: 8 }).notNull(), // Latest market price for the symbol (updated periodically)
   unrealized_pnl: numeric('unrealized_pnl', { precision: 20, scale: 8 }).default('0').notNull(), // Unrealized profit/loss based on current_price vs entry_price
   leverage: integer('leverage').default(1).notNull(), // Leverage multiplier (1 = no leverage)
+  stop_price: numeric('stop_price', { precision: 20, scale: 8 }), // Protective stop; breaching it closes the position
   is_open: boolean('is_open').default(true).notNull(), // Whether the position is currently open (true) or closed (false)
   ...timestamps(),
 }, (table) => [
@@ -98,6 +99,27 @@ export const accountSnapshots = pgTable('account_snapshots', {
   index('idx_snapshots_account_time').on(table.account_id, table.snapshot_at),
   index('idx_snapshots_time').on(table.snapshot_at),
 ]);
+
+// Resting exit orders the model pre-commits, executed between cycles by the watcher
+export const positionOrders = pgTable('position_orders', {
+  id: uuid('id').primaryKey().defaultRandom(), // Unique identifier for the resting order
+  account_id: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }).notNull(), // Account owning the order
+  position_id: uuid('position_id').references(() => positions.id, { onDelete: 'cascade' }).notNull(), // Position the order protects
+  kind: text('kind').notNull(), // 'TAKE_PROFIT' | 'MOVE_STOP' | 'TRAIL'
+  label: text('label').notNull(), // Human label shown in the brief, e.g. '+1R'
+  trigger_price: numeric('trigger_price', { precision: 20, scale: 8 }).notNull(), // Price at which the order fires
+  quantity: numeric('quantity', { precision: 20, scale: 8 }), // TAKE_PROFIT: how much to close
+  new_stop: numeric('new_stop', { precision: 20, scale: 8 }), // MOVE_STOP: where the stop goes
+  trail_distance: numeric('trail_distance', { precision: 20, scale: 8 }), // TRAIL: how far behind the extreme the stop rides
+  status: text('status').notNull().default('PENDING'), // 'PENDING' | 'TRIGGERED' | 'CANCELLED'
+  triggered_at: timestamp('triggered_at'), // When the order fired
+  ...timestamps(),
+}, (table) => [
+  index('idx_position_orders_position').on(table.position_id, table.status),
+  index('idx_position_orders_account').on(table.account_id, table.status),
+]);
+
+export type PositionOrder = typeof positionOrders.$inferSelect;
 
 // Latest mark price per symbol
 export const marketPrices = pgTable('market_prices', {

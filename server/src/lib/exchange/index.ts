@@ -10,7 +10,7 @@ import { getSymbolExchange } from '../../config/symbols';
 // Fetch technical indicators for a given duration and symbol
 async function fetchIndicators(duration: number, symbol: string) {
   const params = {
-    start_time: Date.now() - (1000 * 60 * 60 * (duration === 5 ? 5 : 24 * 10)), // Last 5 hours or 10 days
+    start_time: Date.now() - duration * 60_000 * 120,
     end_time: Date.now(),
     symbol: symbol,
     interval: duration,
@@ -39,7 +39,8 @@ async function fetchIndicators(duration: number, symbol: string) {
     rsi14,
     atr3,
     atr14,
-    volumeData
+    volumeData,
+    candles: recentCandles,
   };
 }
 
@@ -73,10 +74,11 @@ async function fetchOIAndFunding(symbol: string) {
 
 
 // Orchestrator to get all market data for a symbol
-export async function getMarketData(symbol: string, duration: number = 5) {
-  const [intradayIndicators, longerTermIndicators, oiData] = await Promise.all([
-    fetchIndicators(duration, symbol),           // Intraday data (5-minute intervals)
-    fetchIndicators(240, symbol),                // 4-hour intervals (240 minutes)
+export async function getMarketData(symbol: string, duration: number = 15) {
+  const [intradayIndicators, midTermIndicators, longerTermIndicators, oiData] = await Promise.all([
+    fetchIndicators(duration, symbol),           // Execution timeframe (15-minute intervals)
+    fetchIndicators(60, symbol),                 // Ranking timeframe (1-hour intervals)
+    fetchIndicators(240, symbol),                // Regime timeframe (4-hour intervals)
     fetchOIAndFunding(symbol),
   ]);
 
@@ -94,6 +96,21 @@ export async function getMarketData(symbol: string, duration: number = 5) {
       macd: intradayIndicators.macd,
       rsi7: intradayIndicators.rsi7,
       rsi14: intradayIndicators.rsi14,
+      atr3: intradayIndicators.atr3,
+      atr14: intradayIndicators.atr14,
+      candles: intradayIndicators.candles,
+    },
+
+    // Ranking timeframe (1-hour)
+    midTerm: {
+      midPrices: midTermIndicators.midPrices,
+      ema20: midTermIndicators.ema20,
+      ema50: midTermIndicators.ema50,
+      atr3: midTermIndicators.atr3,
+      atr14: midTermIndicators.atr14,
+      macd: midTermIndicators.macd,
+      rsi14: midTermIndicators.rsi14,
+      volumeData: midTermIndicators.volumeData,
     },
     
     // Longer-term context (4-hour timeframe)
@@ -120,7 +137,7 @@ export async function fetchMarketData(): Promise<MarketData[]> {
   const allMarketData = await Promise.all(
     TRADING_SYMBOLS.map(async (symbol) => ({
       symbol,
-      data: await getMarketData(symbol, 5),
+      data: await getMarketData(symbol, 15),
     }))
   );
 
