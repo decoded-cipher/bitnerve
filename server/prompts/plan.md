@@ -8,6 +8,9 @@ The read was rarely the problem. The position management was.
 
 - **Adding to a losing position is rejected.** `adjust_position` refuses any add while the position is underwater. Averaging down converts one sized loss into a compounding one. A loser is cut or held at its current size.
 - **New entries are rejected more than 8% below the rolling 12-hour equity peak.** Closing, trimming, moving stops and adding to winners all still work. If you hit this, you do not argue with it — you manage what you hold until equity recovers or the peak ages out.
+- **A third entry into a symbol that has lost twice in 12 hours is rejected.** Five ZEC entries in one ranging night cost 200.77, of which 77.26 was fees. Do not size down to sneak past it; rank a different name or stay flat.
+
+**Chop is the third enemy, after fees and drawdown.** When a symbol's 1h ATR3 sits under ~0.8x its ATR14, price is ranging and every entry is a bounce-buy that reverts. Measure your own realised trade range against the 1h ATR3: if your entries and exits all sit inside one ATR, you are not trading a trend, you are paying the round trip repeatedly to stand still.
 
 Do not spend a cycle designing a trade either rule will refuse.
 
@@ -28,9 +31,23 @@ Rank by which symbol's 15m has **stopped making new lows**, not by which has the
 
 Pick the invalidation level first, then size so being stopped there costs **1.5-3% of equity**. R = (entry - stop) x quantity.
 
-Arming a stop arms the ladder: **+1R** closes a third, **+1.5R** moves the stop to entry, **+2R** trails 1x 1h ATR3 behind the extreme. A watcher runs these on 1-minute bars between cycles, so they fire at the level whether or not you are looking.
+Arming a stop arms the ladder, and **the rungs are ATR-denominated, not R-denominated**. With `step = max(0.5x 1h ATR3, 3x true round trip)`:
 
-**But check +1R is reachable before you enter.** A +1R rung further than ~1x the 1h ATR3 above entry will not be hit — the trade then has no profit-taking rung and is a coin flip on the stop. If +1R sits outside 1x ATR3, tighten the stop until R fits, or skip the trade. This is the single biggest gap in the last run.
+- **TP1** at 1x step — a third closes.
+- **BE** at 1.75x step — the stop moves to entry.
+- **TRAIL** at 2.5x step — the stop trails 1x 1h ATR3 behind the extreme.
+
+A watcher runs these on 1-minute bars between cycles, so they fire at the level whether or not you are looking.
+
+**Stop width no longer moves the rungs.** Place the stop where structure demands and size quantity to the risk band. The old rule that R had to fit inside 1x ATR3 is gone — it made a wide structural stop strand the profit rung, and on 31 Aug it vetoed 5 of 9 cycles, including a clean ZEC breakout that then ran 855.93 to 870.95 without us. The only width test left is the fee floor: a stop at least 12 round trips wide.
+
+## 4a. Arm the invalidation, never describe it
+
+`stop_price` is the disaster level, set wide enough to survive noise. Your actual thesis-invalidation is usually nearer than that — so pass **`cut_price`** as well. It rests between the mark and the stop, the watcher fills it on 1-minute bars, and it closes the whole position and cancels the ladder.
+
+Cycles are 15 minutes apart, so a level you intend to act on by hand is never watched. Last run both large losses named an earlier exit in `record_analysis` and armed only the wide stop — PROM said "cut at 6.86" and rode to 6.70 for -348.68; 4USDT said "cut below 0.016167" and rode to 0.01569 for -218.30. Roughly 258 of an 862 drawdown came from that gap alone. On the real 4USDT path an armed cut returns -75.31 instead of -218.30.
+
+If you can name the level that proves you wrong, arm it. `adjust_position` moves it later.
 
 ## 5. Stops
 
@@ -54,4 +71,4 @@ More than 5% below the session equity peak, halve intended risk on every new ent
 
 ## Reporting
 
-Every `record_analysis` gives, per open position: R multiple, mark-to-stop risk as % of equity, whether +1R sits inside 1x the 1h ATR3, and which rule above fires next at what price.
+Every `record_analysis` gives, per open position: R multiple, mark-to-stop risk as % of equity, where TP1 and the cut level sit, and which rule above fires next at what price. When you decline a trade that passes the fee floor and the trend gate, say what declining costs if you are wrong.

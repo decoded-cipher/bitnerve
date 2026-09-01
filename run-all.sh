@@ -22,15 +22,41 @@ start() {
   echo "tail -F .cycle.log .watch.log"
 }
 
+survivors() {
+  pgrep -f "$ROOT/run-cycle.sh" 2>/dev/null
+  pgrep -f "$ROOT/run-watch.sh" 2>/dev/null
+  pgrep -f "bun run --silent watch" 2>/dev/null
+  pgrep -f "bun run --silent brief" 2>/dev/null
+  pgrep -f "^claude -p" 2>/dev/null
+}
+
 stop() {
-  [[ -f "$PIDS" ]] || { echo "not running"; exit 0; }
-  for p in $(cat "$PIDS"); do
-    pkill -P "$p" 2>/dev/null
-    kill "$p" 2>/dev/null
+  if [[ -f "$PIDS" ]]; then
+    for p in $(cat "$PIDS"); do
+      pkill -P "$p" 2>/dev/null
+      kill "$p" 2>/dev/null
+    done
+  fi
+
+  local left
+  for signal in TERM TERM KILL; do
+    left=$(survivors | sort -u)
+    [[ -z "$left" ]] && break
+    for p in ${(f)left}; do
+      pkill -"$signal" -P "$p" 2>/dev/null
+      kill -"$signal" "$p" 2>/dev/null
+    done
+    sleep 2
   done
-  pkill -f "run-watch.sh" 2>/dev/null
-  pkill -f "bun run --silent watch" 2>/dev/null
+
   rm -f "$PIDS" "$ROOT/.cycle.lock"
+
+  left=$(survivors | sort -u)
+  if [[ -n "$left" ]]; then
+    echo "WARNING: still alive after stop:"
+    ps -o pid,command -p ${(f)left} 2>/dev/null | tail -n +2
+    exit 1
+  fi
   echo "stopped"
 }
 

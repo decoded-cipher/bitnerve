@@ -9,6 +9,28 @@ type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 const MIN_SHARPE_TRADES = 2;
 
 const MAX_DRAWDOWN_FROM_PEAK = Number.parseFloat(process.env.MAX_DRAWDOWN_FROM_PEAK ?? '') || 0.08;
+const MAX_LOSSES_PER_SYMBOL = Number.parseInt(process.env.MAX_LOSSES_PER_SYMBOL ?? '', 10) || 2;
+const SYMBOL_COOLDOWN_HOURS = Number.parseFloat(process.env.SYMBOL_COOLDOWN_HOURS ?? '') || 12;
+
+async function assertSymbolNotBurned(tx: Executor, accountId: string, symbol: string): Promise<void> {
+  const since = new Date(Date.now() - SYMBOL_COOLDOWN_HOURS * 3_600_000);
+  const [row] = await tx
+    .select({ losses: sql<number>`count(*)::int` })
+    .from(orders)
+    .where(and(
+      eq(orders.account_id, accountId),
+      eq(orders.symbol, symbol),
+      sql`${orders.realized_pnl} < 0`,
+      gte(orders.created_at, since),
+    ));
+
+  const losses = Number(row?.losses ?? 0);
+  if (losses >= MAX_LOSSES_PER_SYMBOL) {
+    throw new Error(
+      `Symbol cooldown: ${symbol} has ${losses} losing round trips in the last ${SYMBOL_COOLDOWN_HOURS}h, at or over the limit of ${MAX_LOSSES_PER_SYMBOL}. Repeatedly re-entering one name in a range is how a chop grinds an account down. Trade a different symbol or stay flat; managing and closing what you already hold is still allowed.`
+    );
+  }
+}
 const DRAWDOWN_PEAK_WINDOW_HOURS = Number.parseFloat(process.env.DRAWDOWN_PEAK_WINDOW_HOURS ?? '') || 12;
 
 async function assertDrawdownAllowsEntry(tx: Executor, account: typeof accounts.$inferSelect): Promise<void> {
@@ -189,6 +211,19 @@ export function assertStopSide(side: 'BUY' | 'SELL', stopPrice: number, mark: nu
   }
 }
 
+export function assertCutSide(side: 'BUY' | 'SELL', cutPrice: number, stopPrice: number, mark: number): void {
+  if (!Number.isFinite(cutPrice) || cutPrice <= 0) {
+    throw new Error('A positive cut price is required');
+  }
+  if (side === 'BUY') {
+    if (cutPrice >= mark) throw new Error(`A long cut must sit below the mark: cut ${cutPrice} is not below ${mark}`);
+    if (cutPrice <= stopPrice) throw new Error(`A long cut must sit above its stop: cut ${cutPrice} is not above stop ${stopPrice}. A cut at or below the stop is the stop.`);
+  } else {
+    if (cutPrice <= mark) throw new Error(`A short cut must sit above the mark: cut ${cutPrice} is not above ${mark}`);
+    if (cutPrice >= stopPrice) throw new Error(`A short cut must sit below its stop: cut ${cutPrice} is not below stop ${stopPrice}. A cut at or above the stop is the stop.`);
+  }
+}
+
 export async function createPosition(
   accountId: string,
   symbol: string,
@@ -226,6 +261,7 @@ export async function createPosition(
   }
 
   await assertDrawdownAllowsEntry(tx, account);
+  await assertSymbolNotBurned(tx, accountId, symbol);
 
   const normalizedLeverage = Number.isFinite(leverage) && leverage > 0 ? Math.max(1, Math.floor(leverage)) : 1;
 
@@ -719,6 +755,44 @@ export async function setStop(accountId: string, symbol: string, stopPrice: numb
   return { previous, stopPrice, side: position.side, entryPrice: parseFloat(position.entry_price) };
 }
 
+export async function setCut(accountId: string, symbol: string, cutPrice: number, mark: number) {
+  const openPositions = await getOpenPositions(accountId);
+  const position = openPositions.find(p => p.symbol === symbol);
+  if (!position) throw new Error(`No open position found for ${symbol}`);
+  if (position.stop_price === null) throw new Error(`${symbol} has no stop armed; arm a stop before a cut level`);
+
+  const stopPrice = parseFloat(position.stop_price);
+  assertCutSide(position.side as 'BUY' | 'SELL', cutPrice, stopPrice, mark);
+
+  const existing = await db
+    .select()
+    .from(positionOrders)
+    .where(and(
+      eq(positionOrders.position_id, position.id),
+      eq(positionOrders.kind, 'CUT'),
+      eq(positionOrders.status, 'PENDING'),
+    ));
+
+  const previous = existing.length ? parseFloat(existing[0].trigger_price) : null;
+
+  for (const row of existing) {
+    await db
+      .update(positionOrders)
+      .set({ status: 'CANCELLED', updated_at: new Date() })
+      .where(eq(positionOrders.id, row.id));
+  }
+
+  await db.insert(positionOrders).values({
+    account_id: accountId,
+    position_id: position.id,
+    kind: 'CUT',
+    label: 'cut',
+    trigger_price: cutPrice.toString(),
+  });
+
+  return { previous, cutPrice, stopPrice, side: position.side, entryPrice: parseFloat(position.entry_price) };
+}
+
 export interface StopCandle {
   start_time: string | number;
   close_time?: string | number;
@@ -730,7 +804,7 @@ export interface StopCandle {
 export interface ExitEvent {
   symbol: string;
   side: string;
-  kind: 'STOP' | 'TAKE_PROFIT' | 'MOVE_STOP' | 'TRAIL';
+  kind: 'STOP' | 'CUT' | 'TAKE_PROFIT' | 'MOVE_STOP' | 'TRAIL';
   label: string;
   at: number;
   triggerPrice: number;
@@ -749,25 +823,40 @@ export async function buildExitLadder(
   stop: number,
   quantity: number,
   trailDistance: number,
-  quantityStep: number
+  quantityStep: number,
+  cutPrice?: number,
+  roundTripCost?: number
 ): Promise<void> {
   const risk = Math.abs(entry - stop);
   if (!(risk > 0)) return;
 
   const dir = side === 'BUY' ? 1 : -1;
-  const at = (multiple: number) => entry + dir * risk * multiple;
+  const atr = trailDistance > 0 ? trailDistance : 0;
+  const feeFloor = (roundTripCost ?? 0) * 3;
+  const step = Math.max(atr * 0.5, feeFloor) || risk;
+  const at = (multiple: number) => entry + dir * step * multiple;
 
   const snap = (q: number) => (quantityStep > 0 ? Math.floor(q / quantityStep) * quantityStep : q);
   const third = snap(quantity / 3);
 
   const rows: Array<typeof positionOrders.$inferInsert> = [];
 
+  if (cutPrice !== undefined) {
+    rows.push({
+      account_id: accountId,
+      position_id: positionId,
+      kind: 'CUT',
+      label: 'cut',
+      trigger_price: cutPrice.toString(),
+    });
+  }
+
   if (third > 0) {
     rows.push({
       account_id: accountId,
       position_id: positionId,
       kind: 'TAKE_PROFIT',
-      label: '+1R',
+      label: 'TP1',
       trigger_price: at(1).toString(),
       quantity: third.toString(),
     });
@@ -777,8 +866,8 @@ export async function buildExitLadder(
     account_id: accountId,
     position_id: positionId,
     kind: 'MOVE_STOP',
-    label: '+1.5R',
-    trigger_price: at(1.5).toString(),
+    label: 'BE',
+    trigger_price: at(1.75).toString(),
     new_stop: entry.toString(),
   });
 
@@ -787,8 +876,8 @@ export async function buildExitLadder(
       account_id: accountId,
       position_id: positionId,
       kind: 'TRAIL',
-      label: '+2R',
-      trigger_price: at(2).toString(),
+      label: 'TRAIL',
+      trigger_price: at(2.5).toString(),
       trail_distance: trailDistance.toString(),
     });
   }
@@ -860,6 +949,41 @@ export async function enforceExits(
         const reached = isLong ? high : low;
         const adverse = isLong ? low : high;
 
+        const cutOrder = [...live.values()].find(o => o.kind === 'CUT');
+        if (cutOrder) {
+          const cut = parseFloat(cutOrder.trigger_price);
+          if (isLong ? adverse <= cut : adverse >= cut) {
+            const gapped = isLong ? open < cut : open > cut;
+            const fillPrice = gapped ? open : cut;
+            const quantity = parseFloat(
+              (await getOpenPositions(accountId)).find(p => p.id === position.id)?.quantity ?? position.quantity
+            );
+            const result = await closePosition(accountId, position.symbol, fillPrice, undefined);
+            events.push({
+              symbol: position.symbol,
+              side: position.side,
+              kind: 'CUT',
+              label: 'cut',
+              at: time,
+              triggerPrice: cut,
+              fillPrice,
+              quantity,
+              realizedPnL: result.realizedPnL,
+              gapped,
+            });
+            await fire(cutOrder.id);
+            for (const id of [...live.keys()]) {
+              await db
+                .update(positionOrders)
+                .set({ status: 'CANCELLED', updated_at: new Date() })
+                .where(eq(positionOrders.id, id));
+            }
+            closed = true;
+            stopDirty = false;
+            break;
+          }
+        }
+
         if (stop !== null && (isLong ? adverse <= stop : adverse >= stop)) {
           const gapped = isLong ? open < stop : open > stop;
           const fillPrice = gapped ? open : stop;
@@ -891,6 +1015,7 @@ export async function enforceExits(
         }
 
         for (const order of [...live.values()]) {
+          if (order.kind === 'CUT') continue;
           const trigger = parseFloat(order.trigger_price);
           const hit = isLong ? reached >= trigger : reached <= trigger;
           if (!hit) continue;

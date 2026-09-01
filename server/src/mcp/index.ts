@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { TRADING_SYMBOLS } from '../config/exchange';
 import { closeDatabase } from '../config/database';
-import { createPosition, closePosition, addToPosition, setStop, buildExitLadder } from '../lib/exchange/helper';
+import { createPosition, closePosition, addToPosition, setStop, setCut, buildExitLadder } from '../lib/exchange/helper';
 import { round, sig } from '../lib/utils';
 import { getInstrument, roundQuantity, describeConstraints } from '../lib/exchange/instruments';
 import { describeError } from '../lib/errors';
@@ -47,11 +47,12 @@ server.registerTool(
       quantity: z.number().positive(),
       leverage: z.number().int().min(1).optional(),
       stop_price: z.number().positive().optional(),
+      cut_price: z.number().positive().optional(),
     }),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
-  async ({ symbol, side, quantity, leverage, stop_price }) =>
-    record('create_position', { symbol, side, quantity, leverage, stop_price }, async () => {
+  async ({ symbol, side, quantity, leverage, stop_price, cut_price }) =>
+    record('create_position', { symbol, side, quantity, leverage, stop_price, cut_price }, async () => {
       const accountId = await getAccountId();
       const instrument = await getInstrument(symbol);
 
@@ -99,13 +100,18 @@ server.registerTool(
           stop_price,
           placeable,
           atr3,
-          instrument.quantityStep
+          instrument.quantityStep,
+          cut_price,
+          data.currentPrice * instrument.takerFeeRate * 2
         );
-        const r = Math.abs(data.currentPrice - stop_price);
         const dir = side === 'BUY' ? 1 : -1;
+        const roundTrip = data.currentPrice * instrument.takerFeeRate * 2;
+        const step = Math.max(atr3 * 0.5, roundTrip * 3) || Math.abs(data.currentPrice - stop_price);
         notes.push(
           `stop armed at ${sig(stop_price)} — risking ${round(risk, 2)} (1R) if hit`,
-          `ladder armed: +1R close ${round(Math.floor(placeable / 3 / (instrument.quantityStep || 1)) * (instrument.quantityStep || 1), 6)} at ${sig(data.currentPrice + dir * r)}  |  +1.5R stop -> break-even at ${sig(data.currentPrice + dir * r * 1.5)}  |  +2R trail ${sig(atr3)} from ${sig(data.currentPrice + dir * r * 2)}`,
+          `ladder armed (ATR-denominated, step ${sig(step)} = max(0.5x ATR3 ${sig(atr3)}, 3x round trip ${sig(roundTrip)})):`,
+          `  TP1 close ${round(Math.floor(placeable / 3 / (instrument.quantityStep || 1)) * (instrument.quantityStep || 1), 6)} at ${sig(data.currentPrice + dir * step)}  |  BE stop -> entry at ${sig(data.currentPrice + dir * step * 1.75)}  |  TRAIL ${sig(atr3)} from ${sig(data.currentPrice + dir * step * 2.5)}`,
+          'rungs no longer scale with stop width — a wide structural stop does not strand TP1',
           'the watcher fires these between cycles; override any leg with adjust_position'
         );
       } else {
@@ -164,18 +170,19 @@ server.registerTool(
   {
     title: 'Adjust position',
     description:
-      'Change an open position without closing it. Pass add_quantity to scale in at the current mark — margin and a taker fee are charged on the added notional only, and the entry price is re-averaged, so adding is far cheaper than a close-and-reopen round trip. Pass stop_price to set or move the protective stop, which is how you take a proven winner to break-even. At least one of the two is required; both may be given together. Use close_position to reduce size.',
+      'Change an open position without closing it. Pass add_quantity to scale in at the current mark — margin and a taker fee are charged on the added notional only, and the entry price is re-averaged, so adding is far cheaper than a close-and-reopen round trip; adding to a position that is underwater is rejected. Pass stop_price to set or move the protective stop, which is how you take a proven winner to break-even. Pass cut_price to arm or move the thesis-invalidation level — a resting exit nearer the mark than the stop, which the watcher fills on 1-minute bars between cycles. At least one is required; they may be combined. Use close_position to reduce size.',
     inputSchema: z.object({
       symbol: z.enum(TRADING_SYMBOLS as [string, ...string[]]),
       add_quantity: z.number().positive().optional(),
       stop_price: z.number().positive().optional(),
+      cut_price: z.number().positive().optional(),
     }),
     annotations: { readOnlyHint: false, destructiveHint: true },
   },
-  async ({ symbol, add_quantity, stop_price }) =>
-    record('adjust_position', { symbol, add_quantity, stop_price }, async () => {
-      if (add_quantity === undefined && stop_price === undefined) {
-        throw new Error('Pass add_quantity, stop_price, or both — adjust_position with neither does nothing.');
+  async ({ symbol, add_quantity, stop_price, cut_price }) =>
+    record('adjust_position', { symbol, add_quantity, stop_price, cut_price }, async () => {
+      if (add_quantity === undefined && stop_price === undefined && cut_price === undefined) {
+        throw new Error('Pass add_quantity, stop_price, cut_price, or a combination — adjust_position with none does nothing.');
       }
 
       const accountId = await getAccountId();
@@ -211,6 +218,17 @@ server.registerTool(
         const atEntry = Math.abs(stop_price - moved.entryPrice) / moved.entryPrice < 0.0005;
         lines.push(
           `STOP ${symbol} ${wasAt} -> ${sig(stop_price)}${atEntry ? ' (break-even)' : ''}`
+        );
+      }
+
+      if (cut_price !== undefined) {
+        const moved = await setCut(accountId, symbol, cut_price, data.currentPrice);
+        payload = { ...payload, cut: moved };
+        const wasAt = moved.previous === null ? 'none' : String(sig(moved.previous));
+        const away = Math.abs(data.currentPrice - cut_price) / data.currentPrice * 100;
+        lines.push(
+          `CUT ${symbol} ${wasAt} -> ${sig(cut_price)} (${round(away, 2)}% from mark, stop stays ${sig(moved.stopPrice)})`,
+          'the watcher fills this on 1-minute bars and closes the whole position'
         );
       }
 

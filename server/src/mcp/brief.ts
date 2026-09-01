@@ -56,6 +56,7 @@ async function renderAccount(accountId: string): Promise<string> {
         .sort((a, b) => parseFloat(a.trigger_price) - parseFloat(b.trigger_price))
         .map(o => {
           const at = sig(parseFloat(o.trigger_price));
+          if (o.kind === 'CUT') return `CUT all at ${at}`;
           if (o.kind === 'TAKE_PROFIT') return `${o.label} close ${round(parseFloat(o.quantity ?? '0'), 6)} at ${at}`;
           if (o.kind === 'MOVE_STOP') return `${o.label} stop -> ${sig(parseFloat(o.new_stop ?? '0'))} at ${at}`;
           return `${o.label} trail ${sig(parseFloat(o.trail_distance ?? '0'))} from ${at}`;
@@ -77,6 +78,9 @@ function renderExits(events: ExitEvent[]): string {
       const who = `${e.symbol} ${e.side === 'BUY' ? 'LONG' : 'SHORT'}`;
       if (e.kind === 'STOP') {
         return `${clock(e.at)}  ${who} ${e.label} hit ${sig(e.triggerPrice)} — filled ${sig(e.fillPrice!)}${e.gapped ? ' (gapped through)' : ''}  qty ${round(e.quantity!, 6)}  net realised ${round(e.realizedPnL!, 2)}`;
+      }
+      if (e.kind === 'CUT') {
+        return `${clock(e.at)}  ${who} CUT level ${sig(e.triggerPrice)} broke — filled ${sig(e.fillPrice!)}${e.gapped ? ' (gapped through)' : ''}  qty ${round(e.quantity!, 6)}  net realised ${round(e.realizedPnL!, 2)}  (thesis invalidated ahead of the stop)`;
       }
       if (e.kind === 'TAKE_PROFIT') {
         return `${clock(e.at)}  ${who} ${e.label} take-profit at ${sig(e.triggerPrice)} — closed ${round(e.quantity!, 6)}  net realised ${round(e.realizedPnL!, 2)}`;
