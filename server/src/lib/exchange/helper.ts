@@ -14,20 +14,24 @@ const SYMBOL_COOLDOWN_HOURS = Number.parseFloat(process.env.SYMBOL_COOLDOWN_HOUR
 
 async function assertSymbolNotBurned(tx: Executor, accountId: string, symbol: string): Promise<void> {
   const since = new Date(Date.now() - SYMBOL_COOLDOWN_HOURS * 3_600_000);
-  const [row] = await tx
-    .select({ losses: sql<number>`count(*)::int` })
+  const losingTrips = await tx
+    .select({ positionId: orders.position_id })
     .from(orders)
+    .innerJoin(positions, eq(positions.id, orders.position_id))
     .where(and(
       eq(orders.account_id, accountId),
       eq(orders.symbol, symbol),
-      sql`${orders.realized_pnl} < 0`,
-      gte(orders.created_at, since),
-    ));
+      isNotNull(orders.realized_pnl),
+      eq(positions.is_open, false),
+      gte(positions.updated_at, since),
+    ))
+    .groupBy(orders.position_id)
+    .having(sql`sum(${orders.realized_pnl}) < 0`);
 
-  const losses = Number(row?.losses ?? 0);
+  const losses = losingTrips.length;
   if (losses >= MAX_LOSSES_PER_SYMBOL) {
     throw new Error(
-      `Symbol cooldown: ${symbol} has ${losses} losing round trips in the last ${SYMBOL_COOLDOWN_HOURS}h, at or over the limit of ${MAX_LOSSES_PER_SYMBOL}. Repeatedly re-entering one name in a range is how a chop grinds an account down. Trade a different symbol or stay flat; managing and closing what you already hold is still allowed.`
+      `Symbol cooldown: ${symbol} has ${losses} losing round trips in the last ${SYMBOL_COOLDOWN_HOURS}h, at or over the limit of ${MAX_LOSSES_PER_SYMBOL}. A round trip is one closed position netted across all its exits, so trimming a loser in stages does not count twice. Repeatedly re-entering one name in a range is how a chop grinds an account down. Trade a different symbol or stay flat; managing and closing what you already hold is still allowed.`
     );
   }
 }
@@ -922,7 +926,6 @@ export async function enforceExits(
 
       let stop = position.stop_price !== null ? parseFloat(position.stop_price) : null;
       let stopDirty = false;
-      let trailDistance: number | null = null;
       let closed = false;
 
       const pending = await db
@@ -930,6 +933,19 @@ export async function enforceExits(
         .from(positionOrders)
         .where(and(eq(positionOrders.position_id, position.id), eq(positionOrders.status, 'PENDING')));
       const live = new Map(pending.map(o => [o.id, o]));
+
+      const [armedTrail] = await db
+        .select()
+        .from(positionOrders)
+        .where(and(
+          eq(positionOrders.position_id, position.id),
+          eq(positionOrders.kind, 'TRAIL'),
+          eq(positionOrders.status, 'TRIGGERED'),
+        ))
+        .limit(1);
+
+      const inheritedTrail = armedTrail ? parseFloat(armedTrail.trail_distance ?? '0') : 0;
+      let trailDistance: number | null = inheritedTrail > 0 ? inheritedTrail : null;
 
       const fire = async (id: string) => {
         await db
