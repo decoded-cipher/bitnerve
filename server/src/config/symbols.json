@@ -1,94 +1,112 @@
 {
-  "constraintsSyncedAt": "2026-08-30T02:08:08.391Z",
+  "constraintsSyncedAt": "2026-09-01T04:39:47.259Z",
   "symbols": [
     {
-      "symbol": "ETHUSDT",
-      "base": "ETH",
-      "name": "Ethereum",
+      "symbol": "ARBUSDT",
+      "base": "ARB",
+      "name": "Arbitrum",
       "exchange": "EXCHANGE_2",
       "constraints": {
-        "minQuantity": 0.01,
-        "quantityStep": 0.01,
-        "quantityPrecision": 2,
-        "pricePrecision": 2,
+        "minQuantity": 67.1,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 5,
         "minLeverage": 1,
-        "maxLeverage": 90,
-        "maxQuantity": 2000,
+        "maxLeverage": 25,
+        "maxQuantity": 4300000,
         "takerFeeRate": 0.00065,
         "makerFeeRate": 0.00024,
-        "maintMarginRate": 0.6
+        "maintMarginRate": 1.73
       }
     },
     {
-      "symbol": "SOLUSDT",
-      "base": "SOL",
-      "name": "Solana",
+      "symbol": "CRVUSDT",
+      "base": "CRV",
+      "name": "Curve DAO",
       "exchange": "EXCHANGE_2",
       "constraints": {
-        "minQuantity": 0.1,
+        "minQuantity": 21.1,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 4,
+        "minLeverage": 1,
+        "maxLeverage": 40,
+        "maxQuantity": 196620,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 1.15
+      }
+    },
+    {
+      "symbol": "OPUSDT",
+      "base": "OP",
+      "name": "Optimism",
+      "exchange": "EXCHANGE_2",
+      "constraints": {
+        "minQuantity": 77.5,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 5,
+        "minLeverage": 1,
+        "maxLeverage": 60,
+        "maxQuantity": 540000,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.82
+      }
+    },
+    {
+      "symbol": "UNIUSDT",
+      "base": "UNI",
+      "name": "Uniswap",
+      "exchange": "EXCHANGE_2",
+      "constraints": {
+        "minQuantity": 1.5,
         "quantityStep": 0.1,
         "quantityPrecision": 1,
         "pricePrecision": 3,
         "minLeverage": 1,
-        "maxLeverage": 86,
-        "maxQuantity": 12000,
+        "maxLeverage": 60,
+        "maxQuantity": 11000,
         "takerFeeRate": 0.00065,
         "makerFeeRate": 0.00024,
-        "maintMarginRate": 0.57
+        "maintMarginRate": 0.82
       }
     },
     {
-      "symbol": "ZECUSDT",
-      "base": "ZEC",
-      "name": "Zcash",
+      "symbol": "NEARUSDT",
+      "base": "NEAR",
+      "name": "NEAR Protocol",
       "exchange": "EXCHANGE_2",
       "constraints": {
-        "minQuantity": 0.01,
-        "quantityStep": 0.01,
-        "quantityPrecision": 2,
-        "pricePrecision": 2,
-        "minLeverage": 1,
-        "maxLeverage": 64,
-        "maxQuantity": 1100,
-        "takerFeeRate": 0.00065,
-        "makerFeeRate": 0.00024,
-        "maintMarginRate": 0.77
-      }
-    },
-    {
-      "symbol": "PROMUSDT",
-      "base": "PROM",
-      "name": "Prom",
-      "exchange": "EXCHANGE_1",
-      "constraints": {
-        "minQuantity": 1.1,
+        "minQuantity": 3.8,
         "quantityStep": 0.1,
         "quantityPrecision": 1,
-        "pricePrecision": 7,
+        "pricePrecision": 4,
         "minLeverage": 1,
-        "maxLeverage": 20,
-        "maxQuantity": 50000,
-        "takerFeeRate": 0.0008,
-        "makerFeeRate": 0.0003,
-        "maintMarginRate": 2.3
+        "maxLeverage": 60,
+        "maxQuantity": 66470,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.82
       }
     },
     {
-      "symbol": "4USDT",
-      "base": "4",
-      "name": "4",
-      "exchange": "EXCHANGE_1",
+      "symbol": "STXUSDT",
+      "base": "STX",
+      "name": "Stacks",
+      "exchange": "EXCHANGE_2",
       "constraints": {
-        "minQuantity": 430,
-        "quantityStep": 1,
-        "quantityPrecision": 0,
-        "pricePrecision": 7,
+        "minQuantity": 29.3,
+        "quantityStep": 0.1,
+        "quantityPrecision": 1,
+        "pricePrecision": 5,
         "minLeverage": 1,
-        "maxLeverage": 5,
-        "maxQuantity": 5000000,
-        "takerFeeRate": 0.0008,
-        "makerFeeRate": 0.0003,
-        "maintMarginRate": 5.75
+        "maxLeverage": 60,
+        "maxQuantity": 102840,
+        "takerFeeRate": 0.00065,
+        "makerFeeRate": 0.00024,
+        "maintMarginRate": 0.82
       }
     }
   ]

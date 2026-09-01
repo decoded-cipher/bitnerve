@@ -3,27 +3,13 @@
  * Centralized mapping of symbols, full names, and icons
  */
 
-// Import coin icons
-import btcIcon from '~/assets/icons/coin/btc.svg'
-import ethIcon from '~/assets/icons/coin/eth.svg'
-import solIcon from '~/assets/icons/coin/sol.svg'
-import bnbIcon from '~/assets/icons/coin/bnb.svg'
-import xrpIcon from '~/assets/icons/coin/xrp.svg'
-import dogeIcon from '~/assets/icons/coin/doge.svg'
-import hypeIcon from '~/assets/icons/coin/hype.png'
-import linkIcon from '~/assets/icons/coin/link.png'
-import zecIcon from '~/assets/icons/coin/zec.svg'
-import promIcon from '~/assets/icons/coin/prom.png'
-import fourIcon from '~/assets/icons/coin/4.jpg'
-
 // Import model icons
 import groqIcon from '~/assets/icons/model/groq.webp'
 import gptIcon from '~/assets/icons/model/gpt.png'
 import claudeIcon from '~/assets/icons/model/claude.png'
 import geminiIcon from '~/assets/icons/model/gemini.webp'
 import deepseekIcon from '~/assets/icons/model/deepseek.png'
-// Note: qwen.png is currently in coin folder, should be moved to model folder
-import qwenIcon from '~/assets/icons/coin/qwen.png'
+import qwenIcon from '~/assets/icons/model/qwen.png'
 
 export interface CoinConfig {
   symbol: string
@@ -42,62 +28,24 @@ export interface ModelConfig {
  * Coin configurations
  * Maps coin symbols to their full names and icons
  */
-export const COINS: Record<string, CoinConfig> = {
-  BTC: {
-    symbol: 'BTC',
-    fullName: 'Bitcoin',
-    icon: btcIcon,
-  },
-  ETH: {
-    symbol: 'ETH',
-    fullName: 'Ethereum',
-    icon: ethIcon,
-  },
-  SOL: {
-    symbol: 'SOL',
-    fullName: 'Solana',
-    icon: solIcon,
-  },
-  BNB: {
-    symbol: 'BNB',
-    fullName: 'Binance Coin',
-    icon: bnbIcon,
-  },
-  XRP: {
-    symbol: 'XRP',
-    fullName: 'XRP',
-    icon: xrpIcon,
-  },
-  DOGE: {
-    symbol: 'DOGE',
-    fullName: 'Dogecoin',
-    icon: dogeIcon,
-  },
-  HYPE: {
-    symbol: 'HYPE',
-    fullName: 'Hyperliquid',
-    icon: hypeIcon,
-  },
-  LINK: {
-    symbol: 'LINK',
-    fullName: 'Chainlink',
-    icon: linkIcon,
-  },
-  ZEC: {
-    symbol: 'ZEC',
-    fullName: 'Zcash',
-    icon: zecIcon,
-  },
-  PROM: {
-    symbol: 'PROM',
-    fullName: 'Prom',
-    icon: promIcon,
-  },
-  '4': {
-    symbol: '4',
-    fullName: '4',
-    icon: fourIcon,
-  },
+export const COIN_NAMES: Record<string, string> = {
+  BTC: 'Bitcoin',
+  ETH: 'Ethereum',
+  SOL: 'Solana',
+  BNB: 'Binance Coin',
+  XRP: 'XRP',
+  DOGE: 'Dogecoin',
+  HYPE: 'Hyperliquid',
+  LINK: 'Chainlink',
+  ZEC: 'Zcash',
+  PROM: 'Prom',
+  '4': '4',
+  ARB: 'Arbitrum',
+  CRV: 'Curve DAO',
+  OP: 'Optimism',
+  UNI: 'Uniswap',
+  NEAR: 'NEAR Protocol',
+  STX: 'Stacks',
 }
 
 /**
@@ -148,9 +96,19 @@ export const MODELS: ModelConfig[] = [
  * @param symbol - Coin symbol (e.g., 'BTC', 'ETH')
  * @returns CoinConfig or undefined if not found
  */
+export function coinBase(symbol: string): string {
+  return symbol.toUpperCase().replace(/(USDT|USDC|USD)$/, '')
+}
+
+export function coinIconUrl(symbol: string): string {
+  const base = coinBase(symbol)
+  return base ? `https://files.coinswitch.co/public/coins/${base.toLowerCase()}.png` : ''
+}
+
 export function getCoinConfig(symbol: string): CoinConfig | undefined {
-  const upperSymbol = symbol.toUpperCase().replace(/(USDT|USDC|USD)$/, '')
-  return COINS[upperSymbol]
+  const base = coinBase(symbol)
+  if (!base) return undefined
+  return { symbol: base, fullName: COIN_NAMES[base] ?? base, icon: coinIconUrl(base) }
 }
 
 /**
@@ -181,8 +139,7 @@ export function getModelConfig(modelName: string): ModelConfig | undefined {
  * @returns Icon path or empty string if not found
  */
 export function getCoinIcon(symbol: string): string {
-  const config = getCoinConfig(symbol)
-  return config?.icon || ''
+  return coinIconUrl(symbol)
 }
 
 /**
